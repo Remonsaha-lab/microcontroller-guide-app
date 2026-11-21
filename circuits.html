@@ -1,0 +1,2552 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATmega2560 & Embedded Logic — Interactive Circuit Laboratory</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            claude: {
+              bg: '#faf9f5',
+              card: '#ffffff',
+              sidebar: '#f4f2ec',
+              border: '#e8e6df',
+              borderSubtle: '#f0eee8',
+              text: '#2d2b28',
+              muted: '#736f68',
+              terracotta: '#d97757',
+              terracottaHover: '#c76646',
+              terracottaBg: '#fbf0ec',
+              terracottaBorder: '#f4dbd1',
+              darkBg: '#191715',
+              darkCard: '#211f1c',
+              darkSidebar: '#1d1b18',
+              darkBorder: '#33302a',
+              darkText: '#edebe6',
+              darkMuted: '#9e998e',
+              darkTerracottaBg: '#36251f',
+              darkTerracottaBorder: '#52352b'
+            }
+          },
+          fontFamily: {
+            serif: ['Newsreader', 'Georgia', 'serif'],
+            sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'Courier New', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Newsreader + Plus Jakarta Sans + JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- KaTeX for Equations -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" 
+          onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #dedad2; border-radius: 9999px; }
+    .dark ::-webkit-scrollbar-thumb { background: #3b3730; }
+    
+    .code-block {
+      background: #1e1c19;
+      color: #edebe6;
+      border: 1px solid #33302a;
+      border-radius: 0.625rem;
+      padding: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      overflow-x: auto;
+      line-height: 1.5;
+      white-space: pre;
+    }
+
+    .circuit-box {
+      background: #ffffff;
+      border: 1px solid #e8e6df;
+      border-radius: 0.875rem;
+      box-shadow: 0 1px 3px rgba(45, 43, 40, 0.03);
+      transition: all 0.2s ease;
+    }
+    .dark .circuit-box {
+      background: #211f1c;
+      border-color: #33302a;
+      box-shadow: none;
+    }
+
+    .claude-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.2rem 0.625rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    /* Glow and animation effects */
+    @keyframes pulse-wire {
+      0%, 100% { stroke-opacity: 0.5; stroke-width: 2.5px; }
+      50% { stroke-opacity: 1; stroke-width: 3.5px; }
+    }
+    .wire-active {
+      animation: pulse-wire 1.2s infinite ease-in-out;
+    }
+
+    .led-glow-red {
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.9), 0 0 32px rgba(239, 68, 68, 0.5);
+    }
+    .led-glow-green {
+      box-shadow: 0 0 16px rgba(34, 197, 94, 0.9), 0 0 32px rgba(34, 197, 94, 0.5);
+    }
+    .led-glow-blue {
+      box-shadow: 0 0 16px rgba(59, 130, 246, 0.9), 0 0 32px rgba(59, 130, 246, 0.5);
+    }
+    .led-glow-amber {
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.9), 0 0 32px rgba(245, 158, 11, 0.5);
+    }
+
+    /* Range slider custom styling */
+    input[type=range] {
+      accent-color: #d97757;
+    }
+
+    /* LCD Screen Font & Styling */
+    .lcd-screen {
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      letter-spacing: 0.12em;
+    }
+  </style>
+</head>
+<body class="bg-claude-bg dark:bg-claude-darkBg text-claude-text dark:text-claude-darkText font-sans transition-colors duration-200 antialiased selection:bg-claude-terracottaBg selection:text-claude-terracotta">
+
+  <!-- TOP HEADER -->
+  <header class="sticky top-0 z-50 bg-claude-bg/95 dark:bg-claude-darkBg/95 backdrop-blur-md border-b border-claude-border dark:border-claude-darkBorder shadow-[0_1px_2px_rgba(45,43,40,0.02)]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Logo & Title -->
+      <div class="flex items-center space-x-3.5">
+        <div class="w-9 h-9 rounded-xl bg-[#d97757] flex items-center justify-center text-white shadow-sm shadow-[#d97757]/20">
+          <i class="fa-solid fa-microchip text-base"></i>
+        </div>
+        <div>
+          <h1 class="font-serif text-lg font-medium leading-tight tracking-tight text-claude-text dark:text-claude-darkText flex items-center gap-2">
+            Interactive Circuit Laboratory
+            <span class="claude-pill bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[11px]">
+              Hardware & PLD Workbench
+            </span>
+          </h1>
+          <p class="text-[11px] text-claude-muted dark:text-claude-darkMuted font-sans">ATmega2560 & Programmable Logic • Real-Time Schematics & Simulation Workbench</p>
+        </div>
+      </div>
+
+      <!-- Header Actions -->
+      <div class="flex items-center space-x-3">
+        <!-- Back to Master Guide Link -->
+        <a href="index.html" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#25221e] text-xs font-semibold text-claude-text dark:text-claude-darkText hover:bg-[#f2eee6] dark:hover:bg-[#302c26] transition shadow-sm">
+          <i class="fa-solid fa-book-open text-claude-terracotta"></i>
+          <span>Back to Master Guide</span>
+        </a>
+
+        <!-- Dark/Light Theme Toggle -->
+        <button id="theme-toggle" class="w-9 h-9 rounded-xl bg-white dark:bg-claude-darkCard text-claude-muted dark:text-claude-darkMuted hover:text-claude-text dark:hover:text-claude-darkText border border-claude-border dark:border-claude-darkBorder flex items-center justify-center transition shadow-sm" title="Toggle Dark/Light Mode">
+          <i class="fa-regular fa-moon dark:hidden text-xs"></i>
+          <i class="fa-regular fa-sun hidden dark:block text-xs text-amber-400"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- HERO OVERVIEW BANNER -->
+    <section class="circuit-box p-6 md:p-8 space-y-4 bg-gradient-to-br from-white to-[#fbf9f4] dark:from-[#211f1c] dark:to-[#1a1816]">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="space-y-2">
+          <div class="flex items-center gap-2">
+            <span class="claude-pill bg-claude-terracottaBg dark:bg-claude-darkTerracottaBg text-claude-terracotta dark:text-[#e58a6d] font-mono font-bold text-xs">
+              LIVE CIRCUIT LABORATORY
+            </span>
+            <span class="text-xs text-claude-muted dark:text-claude-darkMuted">10 Complete Interactive Hardware Models</span>
+          </div>
+          <h2 class="font-serif text-2xl md:text-3xl font-medium text-claude-text dark:text-claude-darkText">
+            Interactive Hardware Circuits, Memory Cells & Silicon Architectures
+          </h2>
+          <p class="text-xs text-claude-muted dark:text-claude-darkMuted max-w-3xl leading-relaxed">
+            Manipulate interactive switches, sliders, analog signals, and control buses in real time. Watch current paths light up, transistors saturate, memory cells latch, ADC registers step through SAR clock cycles, and LCD commands execute.
+          </p>
+        </div>
+
+        <!-- Quick Filter Category Tabs -->
+        <div class="flex flex-wrap md:flex-col gap-1.5 min-w-[200px]">
+          <button onclick="filterCategory('all')" id="btn-cat-all" class="cat-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#d97757] text-white transition text-left flex items-center justify-between shadow-sm">
+            <span>All Circuits</span> <span class="font-mono text-[10px] opacity-90">10</span>
+          </button>
+          <button onclick="filterCategory('io')" id="btn-cat-io" class="cat-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium text-claude-muted dark:text-claude-darkMuted hover:bg-[#f2eee6] dark:hover:bg-[#25221e] transition text-left flex items-center justify-between">
+            <span>I/O & Switches</span> <span class="font-mono text-[10px]">2</span>
+          </button>
+          <button onclick="filterCategory('memory')" id="btn-cat-memory" class="cat-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium text-claude-muted dark:text-claude-darkMuted hover:bg-[#f2eee6] dark:hover:bg-[#25221e] transition text-left flex items-center justify-between">
+            <span>Memory & PLD Cells</span> <span class="font-mono text-[10px]">3</span>
+          </button>
+          <button onclick="filterCategory('analog')" id="btn-cat-analog" class="cat-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium text-claude-muted dark:text-claude-darkMuted hover:bg-[#f2eee6] dark:hover:bg-[#25221e] transition text-left flex items-center justify-between">
+            <span>Analog & Mixed Signal</span> <span class="font-mono text-[10px]">2</span>
+          </button>
+          <button onclick="filterCategory('system')" id="btn-cat-system" class="cat-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium text-claude-muted dark:text-claude-darkMuted hover:bg-[#f2eee6] dark:hover:bg-[#25221e] transition text-left flex items-center justify-between">
+            <span>Timers, Power & LCD</span> <span class="font-mono text-[10px]">3</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== CIRCUIT 1: TRANSISTOR LED DRIVER ==================== -->
+    <article id="c-transistor-led" class="circuit-box p-6 md:p-8 space-y-6 circuit-card" data-category="io">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-claude-border dark:border-claude-darkBorder pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="claude-pill bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-mono font-bold text-xs">CIRCUIT 01</span>
+          <h3 class="font-serif text-xl font-medium text-claude-text dark:text-claude-darkText">Transistor-Buffered High-Current LED Driver (NPN BC547 Low-Side Switch)</h3>
+        </div>
+        <span class="text-xs font-mono text-claude-muted dark:text-claude-darkMuted">Chapter 3.2 • ATmega2560 Port Pin</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Visual Schematic SVG -->
+        <div class="lg:col-span-7 bg-[#faf9f5] dark:bg-[#191715] p-5 rounded-xl border border-claude-border dark:border-claude-darkBorder space-y-4">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span class="text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-diagram-project text-claude-terracotta mr-1.5"></i> Interactive Schematic</span>
+            <span id="c1-status-pill" class="claude-pill bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px]">SATURATED (LED ON)</span>
+          </div>
+
+          <div class="relative w-full aspect-[16/9] bg-white dark:bg-[#121110] rounded-lg border border-claude-border dark:border-claude-darkBorder overflow-hidden flex items-center justify-center p-2">
+            <svg viewBox="0 0 520 280" class="w-full h-full select-none">
+              <defs>
+                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <path d="M 20 0 L 0 0 0 20" fill="none" stroke="currentColor" class="text-slate-200 dark:text-[#262420]" stroke-width="0.5"/>
+                </pattern>
+              </defs>
+              <rect width="520" height="280" fill="url(#grid)" />
+
+              <!-- VCC Rail (+5V) -->
+              <line x1="280" y1="30" x2="420" y2="30" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+              <text x="350" y="22" text-anchor="middle" font-size="11" font-family="monospace" font-weight="bold" fill="#ef4444">+5.0V (VCC)</text>
+
+              <!-- GND Rail -->
+              <line x1="330" y1="250" x2="390" y2="250" stroke="#64748b" stroke-width="3" stroke-linecap="round"/>
+              <line x1="345" y1="256" x2="375" y2="256" stroke="#64748b" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="353" y1="262" x2="367" y2="262" stroke="#64748b" stroke-width="2" stroke-linecap="round"/>
+              <text x="360" y="275" text-anchor="middle" font-size="10" font-family="monospace" fill="#64748b">GND (0V)</text>
+
+              <!-- ATmega2560 Pin Block -->
+              <rect x="25" y="110" width="105" height="60" rx="8" class="fill-white dark:fill-[#201e1a] stroke-claude-border dark:stroke-claude-darkBorder" stroke-width="1.5"/>
+              <text x="77" y="132" text-anchor="middle" font-size="11" font-weight="bold" fill="#d97757">ATmega2560</text>
+              <text x="77" y="148" text-anchor="middle" font-size="10" font-family="monospace" class="fill-claude-text dark:fill-claude-darkText">PORTA.0 (Pin 22)</text>
+              <circle cx="130" cy="140" r="4" fill="#d97757"/>
+
+              <!-- Wire: Pin to Base Resistor -->
+              <line id="c1-wire-base" x1="130" y1="140" x2="190" y2="140" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="190" cy="140" r="3" fill="#22c55e"/>
+
+              <!-- Base Resistor RB -->
+              <rect x="190" y="132" width="55" height="16" rx="3" class="fill-[#f2eee6] dark:fill-[#2d2924] stroke-slate-600 dark:stroke-slate-400" stroke-width="1.5"/>
+              <text id="c1-txt-rb" x="217" y="144" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" class="fill-claude-text dark:fill-claude-darkText">RB 716Ω</text>
+
+              <!-- Wire: RB to Transistor Base -->
+              <line id="c1-wire-b2t" x1="245" y1="140" x2="330" y2="140" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/>
+              <polygon id="c1-arrow-ib" points="290,136 300,140 290,144" fill="#22c55e"/>
+              <text id="c1-lbl-ib" x="295" y="130" text-anchor="middle" font-size="9" font-family="monospace" fill="#22c55e">IB=0.60mA</text>
+
+              <!-- NPN Transistor Circle & Leads -->
+              <circle cx="360" cy="140" r="28" fill="none" class="stroke-slate-400 dark:stroke-slate-600" stroke-width="1.5"/>
+              <line x1="330" y1="124" x2="330" y2="156" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+              <line id="c1-lead-c" x1="330" y1="132" x2="360" y2="114" stroke="#d97757" stroke-width="2.5" stroke-linecap="round"/>
+              <line id="c1-lead-ctop" x1="360" y1="114" x2="360" y2="85" stroke="#d97757" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="330" y1="148" x2="360" y2="166" stroke="#64748b" stroke-width="2.5" stroke-linecap="round"/>
+              <polygon points="354,166 362,168 360,160" fill="#64748b"/>
+              <line x1="360" y1="166" x2="360" y2="250" stroke="#64748b" stroke-width="2.5" stroke-linecap="round"/>
+              <text x="395" y="143" font-size="10" font-family="monospace" font-weight="bold" fill="#d97757">BC547</text>
+              <text x="395" y="156" font-size="8" font-family="monospace" class="fill-claude-muted">NPN (β=100)</text>
+
+              <!-- Collector Resistor RC -->
+              <line x1="360" y1="30" x2="360" y2="45" stroke="#ef4444" stroke-width="2.5"/>
+              <rect x="352" y="45" width="16" height="30" rx="3" class="fill-[#f2eee6] dark:fill-[#2d2924] stroke-slate-600 dark:stroke-slate-400" stroke-width="1.5"/>
+              <text id="c1-txt-rc" x="382" y="63" font-size="9" font-family="monospace" font-weight="bold" class="fill-claude-text dark:fill-claude-darkText">RC 140Ω</text>
+
+              <!-- LED Component -->
+              <line x1="360" y1="75" x2="360" y2="90" stroke="#d97757" stroke-width="2.5"/>
+              <polygon points="350,90 370,90 360,105" fill="#ef4444" class="stroke-slate-700" stroke-width="1"/>
+              <line x1="350" y1="105" x2="370" y2="105" stroke="#1e293b" stroke-width="2.5"/>
+              <!-- Light Rays -->
+              <g id="c1-photons" opacity="1">
+                <line x1="372" y1="92" x2="384" y2="86" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/>
+                <polygon points="383,84 388,86 384,89" fill="#ef4444"/>
+                <line x1="372" y1="99" x2="384" y2="93" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/>
+                <polygon points="383,91 388,93 384,96" fill="#ef4444"/>
+              </g>
+
+              <!-- Physical Glowing Indicator LED -->
+              <circle id="c1-led-glow" cx="460" cy="100" r="18" fill="#ef4444" class="led-glow-red transition-all duration-300"/>
+              <circle cx="460" cy="100" r="14" fill="#fee2e2" opacity="0.6"/>
+              <text x="460" y="132" text-anchor="middle" font-size="10" font-family="monospace" font-weight="bold" fill="#ef4444">LED GLOW</text>
+            </svg>
+          </div>
+
+          <!-- Voltage & Current Probe Readouts -->
+          <div class="grid grid-cols-4 gap-2 text-center text-xs font-mono">
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">Pin Voltage</div>
+              <div id="c1-disp-vpin" class="font-bold text-emerald-600 dark:text-emerald-400">5.00 V</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">Base Curr (IB)</div>
+              <div id="c1-disp-ib" class="font-bold text-emerald-600 dark:text-emerald-400">0.60 mA</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">Collector Curr (IC)</div>
+              <div id="c1-disp-ic" class="font-bold text-claude-terracotta">20.0 mA</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">V_CE(sat)</div>
+              <div id="c1-disp-vce" class="font-bold text-amber-600 dark:text-amber-400">0.20 V</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls Column -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="p-4 rounded-xl bg-[#faf9f5] dark:bg-[#191715] border border-claude-border dark:border-claude-darkBorder space-y-3.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-sliders text-claude-terracotta mr-1"></i> Interactive Controls</span>
+              <button id="c1-btn-toggle" onclick="toggleC1Pin()" class="px-3 py-1 rounded-lg text-xs font-bold bg-[#d97757] text-white shadow-sm hover:bg-[#c76646] transition">
+                Toggle Pin: HIGH (1)
+              </button>
+            </div>
+
+            <!-- Slider: Collector Current IC -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs font-mono">
+                <span class="text-claude-muted">Target LED Current ($I_C$):</span>
+                <span id="c1-val-ic" class="font-bold text-claude-text dark:text-claude-darkText">20 mA</span>
+              </div>
+              <input type="range" id="c1-slider-ic" min="5" max="40" value="20" oninput="updateC1()" class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg cursor-pointer">
+            </div>
+
+            <!-- Slider: Transistor Beta -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs font-mono">
+                <span class="text-claude-muted">Transistor Gain ($eta = h_{FE}$):</span>
+                <span id="c1-val-beta" class="font-bold text-claude-text dark:text-claude-darkText">100</span>
+              </div>
+              <input type="range" id="c1-slider-beta" min="50" max="300" step="10" value="100" oninput="updateC1()" class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg cursor-pointer">
+            </div>
+
+            <!-- Selectors: Overdrive factor k & LED Color -->
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <label class="block text-claude-muted mb-1 font-mono">Overdrive ($k$):</label>
+                <select id="c1-sel-k" onchange="updateC1()" class="w-full p-1.5 rounded-lg border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-xs font-mono">
+                  <option value="1">k = 1 (Edge Sat)</option>
+                  <option value="2">k = 2 (Moderate)</option>
+                  <option value="3" selected>k = 3 (Recommended)</option>
+                  <option value="5">k = 5 (Heavy Sat)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-claude-muted mb-1 font-mono">LED Forward ($V_F$):</label>
+                <select id="c1-sel-led" onchange="updateC1()" class="w-full p-1.5 rounded-lg border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-xs font-mono">
+                  <option value="1.8" selected>Red (1.8V)</option>
+                  <option value="2.2">Green (2.2V)</option>
+                  <option value="3.2">Blue / White (3.2V)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mathematical Derivation Box -->
+          <div class="p-3.5 rounded-xl bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder text-xs space-y-1.5 font-mono">
+            <div class="font-bold text-claude-terracotta">Calculated Resistor Derivations:</div>
+            <div id="c1-math-rb" class="text-claude-muted">$$R_B = \frac{V_{OH} - V_{BE}}{I_B} = \frac{5.0 - 0.7}{0.60\text{ mA}} = \mathbf{716.7\,\Omega}$$</div>
+            <div id="c1-math-rc" class="text-claude-muted">$$R_C = \frac{V_{CC} - V_F - V_{CE(sat)}}{I_C} = \frac{5.0 - 1.8 - 0.2}{20\text{ mA}} = \mathbf{150.0\,\Omega}$$</div>
+          </div>
+
+          <!-- ATmega2560 Driver Code -->
+          <div class="code-block text-[11px]">
+// ATmega2560 Bare-Metal Driver for NPN LED Switch
+void setup() {
+    DDRA |= (1 << DDA0);   // Set PORTA.0 (Pin 22) as OUTPUT
+}
+void loop() {
+    PORTA |= (1 << PORTA0);  // High (5V): Injects IB -> Transistor Saturates -> LED ON
+    _delay_ms(1000);
+    PORTA &= ~(1 << PORTA0); // Low (0V): IB = 0 -> Transistor Cutoff -> LED OFF
+    _delay_ms(1000);
+}</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== CIRCUIT 2: DIGITAL INPUT WITH INTERNAL PULL-UP ==================== -->
+    <article id="c-pullup-switch" class="circuit-box p-6 md:p-8 space-y-6 circuit-card" data-category="io">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-claude-border dark:border-claude-darkBorder pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="claude-pill bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-mono font-bold text-xs">CIRCUIT 02</span>
+          <h3 class="font-serif text-xl font-medium text-claude-text dark:text-claude-darkText">Active-Low Digital Switch & Internal Pull-Up Resistor (Door Alarm System)</h3>
+        </div>
+        <span class="text-xs font-mono text-claude-muted dark:text-claude-darkMuted">Chapter 3.3 • Tutorial 7 (PA5 + PC7)</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Visual Schematic SVG -->
+        <div class="lg:col-span-7 bg-[#faf9f5] dark:bg-[#191715] p-5 rounded-xl border border-claude-border dark:border-claude-darkBorder space-y-4">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span class="text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-bell text-claude-terracotta mr-1.5"></i> Door Alarm Schematic</span>
+            <span id="c2-status-pill" class="claude-pill bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px]">DOOR SECURE (PA5=0)</span>
+          </div>
+
+          <div class="relative w-full aspect-[16/9] bg-white dark:bg-[#121110] rounded-lg border border-claude-border dark:border-claude-darkBorder overflow-hidden flex items-center justify-center p-2">
+            <svg viewBox="0 0 520 280" class="w-full h-full select-none">
+              <rect width="520" height="280" fill="url(#grid)" />
+
+              <!-- Microcontroller Silicon Boundary (Dashed) -->
+              <rect x="20" y="20" width="240" height="240" rx="12" fill="none" stroke="#d97757" stroke-width="1.5" stroke-dasharray="6,4"/>
+              <text x="35" y="42" font-size="11" font-weight="bold" fill="#d97757">ATmega2560 Silicon Boundary</text>
+
+              <!-- VCC Inside MCU -->
+              <line x1="80" y1="55" x2="160" y2="55" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
+              <text x="120" y="48" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" fill="#ef4444">+5.0V (VCC)</text>
+
+              <!-- Internal Pull-Up Resistor R_PU -->
+              <line x1="120" y1="55" x2="120" y2="70" stroke="#ef4444" stroke-width="2"/>
+              <rect id="c2-mos-pu" x="112" y="70" width="16" height="12" rx="2" class="fill-emerald-500 stroke-emerald-700" stroke-width="1"/>
+              <text x="135" y="80" font-size="8" font-family="monospace" class="fill-claude-muted">PORTxn=1</text>
+              <line x1="120" y1="82" x2="120" y2="95" stroke="#22c55e" stroke-width="2"/>
+              <rect x="112" y="95" width="16" height="35" rx="3" class="fill-[#f2eee6] dark:fill-[#2d2924] stroke-slate-600 dark:stroke-slate-400" stroke-width="1.5"/>
+              <text x="120" y="116" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" class="fill-claude-text dark:fill-claude-darkText">R_PU</text>
+              <text x="145" y="116" font-size="8" font-family="monospace" class="fill-claude-muted">30kΩ</text>
+
+              <!-- Internal Node to PA5 Pin -->
+              <line x1="120" y1="130" x2="120" y2="170" stroke="#22c55e" stroke-width="2.5"/>
+              <circle cx="120" cy="170" r="3.5" fill="#22c55e"/>
+              <line x1="120" y1="170" x2="260" y2="170" stroke="#22c55e" stroke-width="2.5"/>
+              
+              <!-- Input Buffer & PINxn latch -->
+              <line x1="120" y1="170" x2="80" y2="170" stroke="#22c55e" stroke-width="2"/>
+              <polygon points="80,160 80,180 60,170" class="fill-white dark:fill-[#201e1a] stroke-slate-600 dark:stroke-slate-400" stroke-width="1.5"/>
+              <text x="50" y="174" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" class="fill-claude-text dark:fill-claude-darkText">PINA.5</text>
+
+              <!-- Pin PA5 Terminal -->
+              <circle cx="260" cy="170" r="5" fill="#d97757"/>
+              <text x="250" y="160" font-size="10" font-family="monospace" font-weight="bold" fill="#d97757">Pin 27 (PA5)</text>
+
+              <!-- External Circuit: Reed Switch to GND -->
+              <line id="c2-wire-ext" x1="260" y1="170" x2="340" y2="170" stroke="#22c55e" stroke-width="2.5"/>
+              
+              <!-- Magnetic Reed Switch Drawing -->
+              <rect x="340" y="145" width="80" height="50" rx="8" class="fill-[#f2eee6] dark:fill-[#201e1a] stroke-slate-500" stroke-width="1.5"/>
+              <text x="380" y="140" text-anchor="middle" font-size="9" font-family="monospace" fill="#64748b">Magnetic Reed Switch</text>
+              <circle cx="355" cy="170" r="3" fill="#64748b"/>
+              <circle cx="405" cy="170" r="3" fill="#64748b"/>
+              <line id="c2-switch-blade" x1="355" y1="170" x2="405" y2="170" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
+
+              <!-- Door Magnet -->
+              <g id="c2-magnet" transform="translate(360, 205)">
+                <rect x="0" y="0" width="20" height="12" fill="#ef4444" rx="2"/>
+                <rect x="20" y="0" width="20" height="12" fill="#3b82f6" rx="2"/>
+                <text x="10" y="9" font-size="8" font-family="monospace" fill="white" font-weight="bold" text-anchor="middle">N</text>
+                <text x="30" y="9" font-size="8" font-family="monospace" fill="white" font-weight="bold" text-anchor="middle">S</text>
+                <text x="20" y="24" font-size="8" font-family="monospace" fill="#64748b" text-anchor="middle">Door Magnet</text>
+              </g>
+
+              <!-- Wire: Switch to GND -->
+              <line x1="405" y1="170" x2="450" y2="170" stroke="#64748b" stroke-width="2.5"/>
+              <line x1="450" y1="170" x2="450" y2="230" stroke="#64748b" stroke-width="2.5"/>
+              <line x1="435" y1="230" x2="465" y2="230" stroke="#64748b" stroke-width="3" stroke-linecap="round"/>
+              <line x1="442" y1="236" x2="458" y2="236" stroke="#64748b" stroke-width="2" stroke-linecap="round"/>
+              <line x1="447" y1="242" x2="453" y2="242" stroke="#64748b" stroke-width="1.5" stroke-linecap="round"/>
+
+              <!-- Alarm Output Pin PC7 -->
+              <circle cx="260" cy="220" r="5" fill="#ef4444"/>
+              <text x="245" y="235" font-size="10" font-family="monospace" font-weight="bold" fill="#ef4444">Pin 30 (PC7)</text>
+              <line x1="260" y1="220" x2="310" y2="220" stroke="#ef4444" stroke-width="2"/>
+              <circle id="c2-alarm-led" cx="330" cy="220" r="14" fill="#64748b" class="transition-all duration-300"/>
+              <text x="330" y="245" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" class="fill-claude-text dark:fill-claude-darkText">ALARM LED</text>
+            </svg>
+          </div>
+
+          <!-- Register Bit Status Row -->
+          <div class="grid grid-cols-4 gap-2 text-center text-xs font-mono">
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">DDRA.5 (Dir)</div>
+              <div class="font-bold text-claude-text dark:text-claude-darkText">0 (Input)</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">PORTA.5 (PU)</div>
+              <div id="c2-reg-porta" class="font-bold text-emerald-600 dark:text-emerald-400">1 (PU ON)</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">PINA.5 (Read)</div>
+              <div id="c2-reg-pina" class="font-bold text-slate-700 dark:text-slate-300">0 (LOW)</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">PORTC.7 (Alarm)</div>
+              <div id="c2-reg-portc" class="font-bold text-slate-500">0 (OFF)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls Column -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="p-4 rounded-xl bg-[#faf9f5] dark:bg-[#191715] border border-claude-border dark:border-claude-darkBorder space-y-3.5">
+            <span class="text-xs font-bold text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-door-open text-claude-terracotta mr-1"></i> Interactive Door Simulator</span>
+
+            <!-- Door Toggle Button -->
+            <button id="c2-btn-door" onclick="toggleC2Door()" class="w-full py-2.5 rounded-lg text-xs font-bold bg-[#d97757] text-white shadow-sm hover:bg-[#c76646] transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-door-closed"></i> <span>Open Door (Break Reed Switch)</span>
+            </button>
+
+            <!-- Pull-Up Checkbox -->
+            <label class="flex items-center gap-2.5 cursor-pointer text-xs font-medium">
+              <input type="checkbox" id="c2-chk-pu" checked onchange="updateC2()" class="w-4 h-4 accent-[#d97757] cursor-pointer">
+              <span>Enable Internal Pull-Up Resistor (<code>PORTA |= (1 &lt;&lt; 5)</code>)</span>
+            </label>
+
+            <!-- EMI Noise Injection button -->
+            <button onclick="injectC2Noise()" id="c2-btn-noise" class="w-full py-2 rounded-lg text-xs font-medium border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100 transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-bolt text-amber-500"></i> <span>Inject Electrical Noise (Test Hi-Z Floating)</span>
+            </button>
+          </div>
+
+          <!-- Theory Box -->
+          <div class="p-4 rounded-xl bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder text-xs space-y-2">
+            <div class="font-bold text-claude-terracotta">Electrical Operation Principle:</div>
+            <p class="text-claude-muted leading-relaxed">
+              When door is <strong>CLOSED</strong>, magnet holds switch closed $\rightarrow$ PA5 is hard-grounded ($0\text{ V}$, logic <code>0</code>).
+              <br>When door <strong>OPENS</strong>, magnet moves away, switch opens $\rightarrow$ internal $30\text{ k}\Omega$ pull-up resistor pulls PA5 cleanly to $+5\text{ V}$ (logic <code>1</code>), triggering the PC7 alarm!
+            </p>
+          </div>
+
+          <!-- Code Snippet -->
+          <div class="code-block text-[11px]">
+// Tutorial 7: Door Alarm with Pull-Up & Reed Switch
+void setup() {
+    DDRA &= ~(1 << 5);  // Configure PA5 as INPUT
+    PORTA |= (1 << 5);  // Enable internal 20k-50k pull-up resistor
+    DDRC |= (1 << 7);   // Configure PC7 as OUTPUT (Alarm Siren)
+}
+void loop() {
+    if (PINA & (1 << 5)) {
+        PORTC |= (1 << 7);  // Door OPEN -> PA5 pulled HIGH -> ALARM ON
+    } else {
+        PORTC &= ~(1 << 7); // Door CLOSED -> PA5 grounded -> ALARM OFF
+    }
+}</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== CIRCUIT 3: FULL ADDER PLA (DIODE AND + TRANSISTOR OR) ==================== -->
+    <article id="c-pla-fulladder" class="circuit-box p-6 md:p-8 space-y-6 circuit-card" data-category="memory">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-claude-border dark:border-claude-darkBorder pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="claude-pill bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 font-mono font-bold text-xs">CIRCUIT 03</span>
+          <h3 class="font-serif text-xl font-medium text-claude-text dark:text-claude-darkText">Full-Adder Diode AND Matrix & Transistor OR Matrix (PLA Circuit Architecture)</h3>
+        </div>
+        <span class="text-xs font-mono text-claude-muted dark:text-claude-darkMuted">Paper Variant B, Q4 • 2022 Exam</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Visual Schematic SVG -->
+        <div class="lg:col-span-7 bg-[#faf9f5] dark:bg-[#191715] p-5 rounded-xl border border-claude-border dark:border-claude-darkBorder space-y-4">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span class="text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-microchip text-purple-600 mr-1.5"></i> PLA Matrix Architecture</span>
+            <span id="c3-minterm-badge" class="claude-pill bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 text-[10px] font-mono">ACTIVE: None (m0)</span>
+          </div>
+
+          <div class="relative w-full aspect-[16/10] bg-white dark:bg-[#121110] rounded-lg border border-claude-border dark:border-claude-darkBorder overflow-hidden flex items-center justify-center p-2">
+            <svg viewBox="0 0 540 320" class="w-full h-full select-none">
+              <rect width="540" height="320" fill="url(#grid)" />
+
+              <!-- VCC Pull-up Top Rail for AND Matrix -->
+              <line x1="160" y1="20" x2="380" y2="20" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
+              <text x="270" y="14" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" fill="#ef4444">+5V Pull-up (AND Matrix)</text>
+
+              <!-- 6 Vertical Input Rails (A, ~A, B, ~B, Cin, ~Cin) -->
+              <line id="c3-rail-a" x1="50" y1="50" x2="50" y2="280" stroke="#64748b" stroke-width="2"/>
+              <text x="50" y="42" text-anchor="middle" font-size="10" font-family="monospace" font-weight="bold" class="fill-claude-text dark:fill-claude-darkText">A</text>
+              <line id="c3-rail-na" x1="75" y1="50" x2="75" y2="280" stroke="#22c55e" stroke-width="2"/>
+              <text x="75" y="42" text-anchor="middle" font-size="9" font-family="monospace" class="fill-claude-muted">A'</text>
+
+              <line id="c3-rail-b" x1="105" y1="50" x2="105" y2="280" stroke="#64748b" stroke-width="2"/>
+              <text x="105" y="42" text-anchor="middle" font-size="10" font-family="monospace" font-weight="bold" class="fill-claude-text dark:fill-claude-darkText">B</text>
+              <line id="c3-rail-nb" x1="130" y1="50" x2="130" y2="280" stroke="#22c55e" stroke-width="2"/>
+              <text x="130" y="42" text-anchor="middle" font-size="9" font-family="monospace" class="fill-claude-muted">B'</text>
+
+              <line id="c3-rail-c" x1="160" y1="50" x2="160" y2="280" stroke="#64748b" stroke-width="2"/>
+              <text x="160" y="42" text-anchor="middle" font-size="10" font-family="monospace" font-weight="bold" class="fill-claude-text dark:fill-claude-darkText">Cin</text>
+              <line id="c3-rail-nc" x1="185" y1="50" x2="185" y2="280" stroke="#22c55e" stroke-width="2"/>
+              <text x="185" y="42" text-anchor="middle" font-size="9" font-family="monospace" class="fill-claude-muted">Cin'</text>
+
+              <!-- 7 Product Lines (Horizontal) P1 to P7 -->
+              <g stroke="#64748b" stroke-width="1.5">
+                <line id="c3-line-p1" x1="40" y1="65" x2="380" y2="65"/>
+                <text x="25" y="69" font-size="8" font-family="monospace" class="fill-claude-muted">P1(m1)</text>
+
+                <line id="c3-line-p2" x1="40" y1="95" x2="380" y2="95"/>
+                <text x="25" y="99" font-size="8" font-family="monospace" class="fill-claude-muted">P2(m2)</text>
+
+                <line id="c3-line-p3" x1="40" y1="125" x2="380" y2="125"/>
+                <text x="25" y="129" font-size="8" font-family="monospace" class="fill-claude-muted">P3(m3)</text>
+
+                <line id="c3-line-p4" x1="40" y1="155" x2="380" y2="155"/>
+                <text x="25" y="159" font-size="8" font-family="monospace" class="fill-claude-muted">P4(m4)</text>
+
+                <line id="c3-line-p5" x1="40" y1="185" x2="380" y2="185"/>
+                <text x="25" y="189" font-size="8" font-family="monospace" class="fill-claude-muted">P5(m5)</text>
+
+                <line id="c3-line-p6" x1="40" y1="215" x2="380" y2="215"/>
+                <text x="25" y="219" font-size="8" font-family="monospace" class="fill-claude-muted">P6(m6)</text>
+
+                <line id="c3-line-p7" x1="40" y1="245" x2="380" y2="245"/>
+                <text x="25" y="249" font-size="8" font-family="monospace" class="fill-claude-muted">P7(m7)</text>
+              </g>
+
+              <!-- Diodes at programmed crosspoints (AND Matrix) -->
+              <g id="c3-diodes">
+                <!-- P1 (m1 = A' B' Cin): diodes at A', B', Cin -->
+                <circle cx="75" cy="65" r="3.5" fill="#a855f7"/>
+                <circle cx="130" cy="65" r="3.5" fill="#a855f7"/>
+                <circle cx="160" cy="65" r="3.5" fill="#a855f7"/>
+
+                <!-- P2 (m2 = A' B Cin') -->
+                <circle cx="75" cy="95" r="3.5" fill="#a855f7"/>
+                <circle cx="105" cy="95" r="3.5" fill="#a855f7"/>
+                <circle cx="185" cy="95" r="3.5" fill="#a855f7"/>
+
+                <!-- P3 (m3 = A' B Cin) -->
+                <circle cx="75" cy="125" r="3.5" fill="#a855f7"/>
+                <circle cx="105" cy="125" r="3.5" fill="#a855f7"/>
+                <circle cx="160" cy="125" r="3.5" fill="#a855f7"/>
+
+                <!-- P4 (m4 = A B' Cin') -->
+                <circle cx="50" cy="155" r="3.5" fill="#a855f7"/>
+                <circle cx="130" cy="155" r="3.5" fill="#a855f7"/>
+                <circle cx="185" cy="155" r="3.5" fill="#a855f7"/>
+
+                <!-- P5 (m5 = A B' Cin) -->
+                <circle cx="50" cy="185" r="3.5" fill="#a855f7"/>
+                <circle cx="130" cy="185" r="3.5" fill="#a855f7"/>
+                <circle cx="160" cy="185" r="3.5" fill="#a855f7"/>
+
+                <!-- P6 (m6 = A B Cin') -->
+                <circle cx="50" cy="215" r="3.5" fill="#a855f7"/>
+                <circle cx="105" cy="215" r="3.5" fill="#a855f7"/>
+                <circle cx="185" cy="215" r="3.5" fill="#a855f7"/>
+
+                <!-- P7 (m7 = A B Cin) -->
+                <circle cx="50" cy="245" r="3.5" fill="#a855f7"/>
+                <circle cx="105" cy="245" r="3.5" fill="#a855f7"/>
+                <circle cx="160" cy="245" r="3.5" fill="#a855f7"/>
+              </g>
+
+              <!-- OR Matrix with BJT Emitter Followers (Sum and Cout rails) -->
+              <!-- Vertical OR Line for Sum: collects P1, P2, P4, P7 -->
+              <line id="c3-or-sum" x1="420" y1="50" x2="420" y2="280" stroke="#64748b" stroke-width="2.5"/>
+              <text x="420" y="42" text-anchor="middle" font-size="10" font-family="monospace" font-weight="bold" fill="#3b82f6">SUM (S)</text>
+
+              <!-- Vertical OR Line for Cout: collects P3, P5, P6, P7 -->
+              <line id="c3-or-cout" x1="470" y1="50" x2="470" y2="280" stroke="#64748b" stroke-width="2.5"/>
+              <text x="470" y="42" text-anchor="middle" font-size="10" font-family="monospace" font-weight="bold" fill="#f59e0b">COUT (C)</text>
+
+              <!-- OR Matrix Transistor Connections -->
+              <circle cx="420" cy="65" r="4" fill="#3b82f6"/>   <!-- P1 -> S -->
+              <circle cx="420" cy="95" r="4" fill="#3b82f6"/>   <!-- P2 -> S -->
+              <circle cx="470" cy="125" r="4" fill="#f59e0b"/>  <!-- P3 -> Cout -->
+              <circle cx="420" cy="155" r="4" fill="#3b82f6"/>  <!-- P4 -> S -->
+              <circle cx="470" cy="185" r="4" fill="#f59e0b"/>  <!-- P5 -> Cout -->
+              <circle cx="470" cy="215" r="4" fill="#f59e0b"/>  <!-- P6 -> Cout -->
+              <circle cx="420" cy="245" r="4" fill="#3b82f6"/>  <!-- P7 -> S -->
+              <circle cx="470" cy="245" r="4" fill="#f59e0b"/>  <!-- P7 -> Cout -->
+
+              <!-- Output Indicator LEDs -->
+              <circle id="c3-led-s" cx="420" cy="300" r="10" fill="#64748b" class="transition-all duration-300"/>
+              <text x="420" y="318" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" class="fill-claude-text dark:fill-claude-darkText">S = 0</text>
+
+              <circle id="c3-led-cout" cx="470" cy="300" r="10" fill="#64748b" class="transition-all duration-300"/>
+              <text x="470" y="318" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" class="fill-claude-text dark:fill-claude-darkText">Cout = 0</text>
+            </svg>
+          </div>
+
+          <!-- Active Product Term Display -->
+          <div class="p-3 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder flex justify-between items-center text-xs font-mono">
+            <div><span class="text-claude-muted">Active Equation:</span> <span id="c3-disp-eqn" class="font-bold text-claude-text dark:text-claude-darkText">~A . ~B . ~Cin</span></div>
+            <div><span class="text-claude-muted">Outputs:</span> <span class="text-blue-500 font-bold">S = <span id="c3-txt-s">0</span></span>, <span class="text-amber-500 font-bold">Cout = <span id="c3-txt-c">0</span></span></div>
+          </div>
+        </div>
+
+        <!-- Controls Column -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="p-4 rounded-xl bg-[#faf9f5] dark:bg-[#191715] border border-claude-border dark:border-claude-darkBorder space-y-4">
+            <span class="text-xs font-bold text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-toggle-on text-purple-600 mr-1"></i> Full Adder Inputs</span>
+
+            <!-- 3 Binary Input Switches -->
+            <div class="grid grid-cols-3 gap-3">
+              <button onclick="toggleC3('a')" id="c3-btn-a" class="p-3 rounded-xl border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-center hover:border-purple-400 transition">
+                <div class="text-[10px] text-claude-muted uppercase font-mono">Input A</div>
+                <div id="c3-val-a" class="text-xl font-mono font-bold text-slate-400 mt-1">0</div>
+              </button>
+              <button onclick="toggleC3('b')" id="c3-btn-b" class="p-3 rounded-xl border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-center hover:border-purple-400 transition">
+                <div class="text-[10px] text-claude-muted uppercase font-mono">Input B</div>
+                <div id="c3-val-b" class="text-xl font-mono font-bold text-slate-400 mt-1">0</div>
+              </button>
+              <button onclick="toggleC3('cin')" id="c3-btn-cin" class="p-3 rounded-xl border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-center hover:border-purple-400 transition">
+                <div class="text-[10px] text-claude-muted uppercase font-mono">Input Cin</div>
+                <div id="c3-val-cin" class="text-xl font-mono font-bold text-slate-400 mt-1">0</div>
+              </button>
+            </div>
+
+            <!-- Truth Table Quick Reference -->
+            <div class="text-xs space-y-1 text-claude-muted font-mono">
+              <div class="font-bold text-claude-text dark:text-claude-darkText">Minterm Mapping:</div>
+              <div>$$S = \Sigma m(1, 2, 4, 7) = P_1 + P_2 + P_4 + P_7$$</div>
+              <div>$$C_{out} = \Sigma m(3, 5, 6, 7) = P_3 + P_5 + P_6 + P_7$$</div>
+            </div>
+          </div>
+
+          <!-- Theory Box -->
+          <div class="p-4 rounded-xl bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder text-xs space-y-2">
+            <div class="font-bold text-purple-700 dark:text-purple-400">Why Diode AND + Transistor OR?</div>
+            <p class="text-claude-muted leading-relaxed">
+              In a diode AND matrix, lines are pulled HIGH to $+V_{CC}$ via resistors. If ANY connected input rail is LOW ($0\text{V}$), the diode conducts forward, clamping the product line to $\approx 0.7\text{V}$ (Logic <code>0</code>). Only when ALL inputs are HIGH do the diodes reverse-bias, allowing the line to reach $+5\text{V}$ (Logic <code>1</code>).
+            </p>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== CIRCUIT 4: 6T CMOS SRAM CELL ==================== -->
+    <article id="c-sram-cell" class="circuit-box p-6 md:p-8 space-y-6 circuit-card" data-category="memory">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-claude-border dark:border-claude-darkBorder pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="claude-pill bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 font-mono font-bold text-xs">CIRCUIT 04</span>
+          <h3 class="font-serif text-xl font-medium text-claude-text dark:text-claude-darkText">6T CMOS Static RAM (SRAM) Memory Cell (Bistable Cross-Coupled Latch)</h3>
+        </div>
+        <span class="text-xs font-mono text-claude-muted dark:text-claude-darkMuted">Paper Set-1, Q3 • 8 KB On-Chip SRAM</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Visual Schematic SVG -->
+        <div class="lg:col-span-7 bg-[#faf9f5] dark:bg-[#191715] p-5 rounded-xl border border-claude-border dark:border-claude-darkBorder space-y-4">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span class="text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-memory text-sky-600 mr-1.5"></i> 6-Transistor Circuit Topology</span>
+            <span id="c4-state-pill" class="claude-pill bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 text-[10px] font-mono">STORED: Q = 1, ~Q = 0</span>
+          </div>
+
+          <div class="relative w-full aspect-[16/10] bg-white dark:bg-[#121110] rounded-lg border border-claude-border dark:border-claude-darkBorder overflow-hidden flex items-center justify-center p-2">
+            <svg viewBox="0 0 520 300" class="w-full h-full select-none">
+              <rect width="520" height="300" fill="url(#grid)" />
+
+              <!-- VDD Rail Top (+5V) -->
+              <line x1="160" y1="25" x2="360" y2="25" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+              <text x="260" y="18" text-anchor="middle" font-size="10" font-family="monospace" font-weight="bold" fill="#ef4444">+5V (VDD)</text>
+
+              <!-- GND Rail Bottom (0V) -->
+              <line x1="160" y1="275" x2="360" y2="275" stroke="#64748b" stroke-width="3" stroke-linecap="round"/>
+              <text x="260" y="292" text-anchor="middle" font-size="9" font-family="monospace" fill="#64748b">GND (VSS)</text>
+
+              <!-- Word Line (WL) -->
+              <line id="c4-wire-wl" x1="40" y1="150" x2="480" y2="150" stroke="#64748b" stroke-width="2.5" stroke-dasharray="4,3"/>
+              <text x="45" y="142" font-size="10" font-family="monospace" font-weight="bold" fill="#d97757">Word Line (WL = 0)</text>
+
+              <!-- Vertical Bit Lines: BL and ~BL -->
+              <line id="c4-wire-bl" x1="80" y1="40" x2="80" y2="260" stroke="#3b82f6" stroke-width="3"/>
+              <text x="80" y="32" text-anchor="middle" font-size="10" font-family="monospace" font-weight="bold" fill="#3b82f6">BL</text>
+
+              <line id="c4-wire-blb" x1="440" y1="40" x2="440" y2="260" stroke="#3b82f6" stroke-width="3"/>
+              <text x="440" y="32" text-anchor="middle" font-size="10" font-family="monospace" font-weight="bold" fill="#3b82f6">~BL</text>
+
+              <!-- Storage Node Q -->
+              <circle cx="190" cy="150" r="6" fill="#22c55e"/>
+              <text x="175" y="154" text-anchor="end" font-size="12" font-family="monospace" font-weight="bold" fill="#22c55e">Q</text>
+              <text id="c4-txt-vq" x="175" y="168" text-anchor="end" font-size="9" font-family="monospace" fill="#22c55e">5.0V</text>
+
+              <!-- P1 PMOS -->
+              <rect id="c4-box-p1" x="175" y="55" width="30" height="30" rx="4" class="fill-red-100 stroke-red-500" stroke-width="1.5"/>
+              <text x="190" y="74" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" fill="#ef4444">P1</text>
+              <line x1="190" y1="25" x2="190" y2="55" stroke="#ef4444" stroke-width="2"/>
+              <line x1="190" y1="85" x2="190" y2="150" stroke="#22c55e" stroke-width="2.5"/>
+
+              <!-- N1 NMOS -->
+              <rect id="c4-box-n1" x="175" y="195" width="30" height="30" rx="4" class="fill-slate-100 stroke-slate-400" stroke-width="1.5"/>
+              <text x="190" y="214" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" fill="#64748b">N1</text>
+              <line x1="190" y1="150" x2="190" y2="195" stroke="#22c55e" stroke-width="2.5"/>
+              <line x1="190" y1="225" x2="190" y2="275" stroke="#64748b" stroke-width="2"/>
+
+              <!-- Storage Node ~Q -->
+              <circle cx="330" cy="150" r="6" fill="#64748b"/>
+              <text x="345" y="154" font-size="12" font-family="monospace" font-weight="bold" fill="#64748b">~Q</text>
+              <text id="c4-txt-vqb" x="345" y="168" font-size="9" font-family="monospace" fill="#64748b">0.0V</text>
+
+              <!-- P2 PMOS -->
+              <rect id="c4-box-p2" x="315" y="55" width="30" height="30" rx="4" class="fill-slate-100 stroke-slate-400" stroke-width="1.5"/>
+              <text x="330" y="74" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" fill="#64748b">P2</text>
+              <line x1="330" y1="25" x2="330" y2="55" stroke="#ef4444" stroke-width="2"/>
+              <line x1="330" y1="85" x2="330" y2="150" stroke="#64748b" stroke-width="2"/>
+
+              <!-- N2 NMOS -->
+              <rect id="c4-box-n2" x="315" y="195" width="30" height="30" rx="4" class="fill-blue-100 stroke-blue-500" stroke-width="1.5"/>
+              <text x="330" y="214" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" fill="#3b82f6">N2</text>
+              <line x1="330" y1="150" x2="330" y2="195" stroke="#64748b" stroke-width="2"/>
+              <line x1="330" y1="225" x2="330" y2="275" stroke="#64748b" stroke-width="2"/>
+
+              <!-- Feedback Wires -->
+              <path d="M 190 130 L 245 130 L 275 170 L 310 170" fill="none" stroke="#22c55e" stroke-width="1.5"/>
+              <path d="M 330 130 L 275 130 L 245 170 L 210 170" fill="none" stroke="#64748b" stroke-width="1.5"/>
+
+              <!-- Access Transistors N3 & N4 -->
+              <rect id="c4-box-n3" x="115" y="138" width="24" height="24" rx="3" class="fill-slate-100 stroke-slate-400" stroke-width="1.5"/>
+              <text x="127" y="153" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold">N3</text>
+              <line x1="80" y1="150" x2="115" y2="150" stroke="#3b82f6" stroke-width="2"/>
+              <line x1="139" y1="150" x2="190" y2="150" stroke="#22c55e" stroke-width="2"/>
+
+              <rect id="c4-box-n4" x="380" y="138" width="24" height="24" rx="3" class="fill-slate-100 stroke-slate-400" stroke-width="1.5"/>
+              <text x="392" y="153" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold">N4</text>
+              <line x1="330" y1="150" x2="380" y2="150" stroke="#64748b" stroke-width="2"/>
+              <line x1="404" y1="150" x2="440" y2="150" stroke="#3b82f6" stroke-width="2"/>
+            </svg>
+          </div>
+
+          <!-- Stored Nodes Summary -->
+          <div class="grid grid-cols-3 gap-2 text-center text-xs font-mono">
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">Word Line (WL)</div>
+              <div id="c4-stat-wl" class="font-bold text-slate-500">0 (HOLD)</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">Internal Q</div>
+              <div id="c4-stat-q" class="font-bold text-emerald-600 dark:text-emerald-400">1 (5.0V)</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">Internal ~Q</div>
+              <div id="c4-stat-qb" class="font-bold text-slate-500">0 (0.0V)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls Column -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="p-4 rounded-xl bg-[#faf9f5] dark:bg-[#191715] border border-claude-border dark:border-claude-darkBorder space-y-3.5">
+            <span class="text-xs font-bold text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-arrows-rotate text-sky-600 mr-1"></i> SRAM Memory Operations</span>
+
+            <!-- Actions Grid -->
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <button onclick="writeC4(1)" class="py-2.5 px-3 rounded-lg font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition flex items-center justify-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-arrow-down"></i> <span>Write '1' (BL=1)</span>
+              </button>
+              <button onclick="writeC4(0)" class="py-2.5 px-3 rounded-lg font-bold bg-rose-600 text-white hover:bg-rose-700 transition flex items-center justify-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-arrow-down"></i> <span>Write '0' (BL=0)</span>
+              </button>
+              <button onclick="readC4()" class="py-2 px-3 rounded-lg font-bold border border-sky-300 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 hover:bg-sky-100 transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-glasses"></i> <span>Read Cell</span>
+              </button>
+              <button onclick="toggleC4WL()" id="c4-btn-wl" class="py-2 px-3 rounded-lg font-bold border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-claude-text dark:text-claude-darkText hover:bg-slate-100 transition">
+                Toggle WL (0/1)
+              </button>
+            </div>
+
+            <!-- Operation Log -->
+            <div class="p-2.5 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder text-xs font-mono">
+              <span class="text-claude-muted">Status:</span> <span id="c4-log" class="text-claude-text dark:text-claude-darkText">Cell in Standby Hold (P1 ON, N2 ON)</span>
+            </div>
+          </div>
+
+          <!-- Theory Box -->
+          <div class="p-4 rounded-xl bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder text-xs space-y-2">
+            <div class="font-bold text-sky-700 dark:text-sky-400">Class Test Theory: Merits & Demerits of SRAM</div>
+            <ul class="list-disc pl-4 space-y-1 text-claude-muted">
+              <li><strong>Merits</strong>: Extreme access speed ($5\text{--}15\text{ ns}$), infinite read/write endurance, standard CMOS fabrication compatibility.</li>
+              <li><strong>Demerits</strong>: Volatile (loses state on power loss), large silicon area per bit ($6\text{ transistors}$ vs $1\text{T}-1\text{C}$ DRAM), static leakage power dissipation.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== CIRCUIT 5: 10-BIT SAR ADC ==================== -->
+    <article id="c-sar-adc" class="circuit-box p-6 md:p-8 space-y-6 circuit-card" data-category="analog">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-claude-border dark:border-claude-darkBorder pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="claude-pill bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 font-mono font-bold text-xs">CIRCUIT 05</span>
+          <h3 class="font-serif text-xl font-medium text-claude-text dark:text-claude-darkText">10-Bit Successive Approximation Register (SAR) Analog-to-Digital Converter</h3>
+        </div>
+        <span class="text-xs font-mono text-claude-muted dark:text-claude-darkMuted">Chapter 6 • ATmega2560 Internal ADC Architecture</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Visual Schematic SVG -->
+        <div class="lg:col-span-7 bg-[#faf9f5] dark:bg-[#191715] p-5 rounded-xl border border-claude-border dark:border-claude-darkBorder space-y-4">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span class="text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-chart-line text-teal-600 mr-1.5"></i> SAR Engine Architecture</span>
+            <span id="c5-cycle-pill" class="claude-pill bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 text-[10px] font-mono">CONVERSION COMPLETE (IDLE)</span>
+          </div>
+
+          <div class="relative w-full aspect-[16/10] bg-white dark:bg-[#121110] rounded-lg border border-claude-border dark:border-claude-darkBorder overflow-hidden flex items-center justify-center p-2">
+            <svg viewBox="0 0 540 320" class="w-full h-full select-none">
+              <rect width="540" height="320" fill="url(#grid)" />
+
+              <!-- Analog Input Terminal Vin -->
+              <circle cx="35" cy="80" r="5" fill="#14b8a6"/>
+              <text x="35" y="65" text-anchor="middle" font-size="10" font-family="monospace" font-weight="bold" fill="#0d9488">Vin (ADC0)</text>
+              <line x1="35" y1="80" x2="80" y2="80" stroke="#14b8a6" stroke-width="2.5"/>
+
+              <!-- Sample & Hold Switch -->
+              <rect x="80" y="72" width="40" height="16" rx="3" class="fill-[#f2eee6] dark:fill-[#201e1a] stroke-slate-500" stroke-width="1.5"/>
+              <text x="100" y="83" text-anchor="middle" font-size="8" font-family="monospace" class="fill-claude-muted">S/H SW</text>
+              <line x1="120" y1="80" x2="160" y2="80" stroke="#14b8a6" stroke-width="2.5"/>
+
+              <!-- Hold Capacitor CH to GND -->
+              <line x1="140" y1="80" x2="140" y2="110" stroke="#14b8a6" stroke-width="2"/>
+              <line x1="130" y1="110" x2="150" y2="110" stroke="#64748b" stroke-width="2.5"/>
+              <line x1="130" y1="115" x2="150" y2="115" stroke="#64748b" stroke-width="2.5"/>
+              <line x1="140" y1="115" x2="140" y2="135" stroke="#64748b" stroke-width="2"/>
+              <line x1="134" y1="135" x2="146" y2="135" stroke="#64748b" stroke-width="2"/>
+              <text x="156" y="115" font-size="8" font-family="monospace" class="fill-claude-muted">C_HOLD</text>
+
+              <!-- Analog Comparator Triangle -->
+              <!-- Vin to Non-Inverting (+) Input -->
+              <line x1="160" y1="80" x2="200" y2="80" stroke="#14b8a6" stroke-width="2.5"/>
+              <polygon points="200,60 200,140 260,100" class="fill-white dark:fill-[#201e1a] stroke-slate-700 dark:stroke-slate-300" stroke-width="2"/>
+              <text x="208" y="84" font-size="12" font-family="monospace" font-weight="bold" fill="#0d9488">+</text>
+              <text x="208" y="124" font-size="14" font-family="monospace" font-weight="bold" fill="#ef4444">−</text>
+              <text x="225" y="104" text-anchor="middle" font-size="8" font-family="monospace" class="fill-claude-muted">COMP</text>
+
+              <!-- Comparator Output Wire -->
+              <line x1="260" y1="100" x2="300" y2="100" stroke="#64748b" stroke-width="2.5"/>
+              <!-- Comparator Decision LED / Label -->
+              <circle id="c5-comp-led" cx="280" cy="90" r="5" fill="#22c55e"/>
+              <text id="c5-comp-txt" x="280" y="80" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" fill="#22c55e">Vin ≥ Vdac</text>
+
+              <!-- SAR Logic Control Unit Block -->
+              <rect x="300" y="55" width="215" height="90" rx="8" class="fill-white dark:fill-[#201e1a] stroke-teal-600" stroke-width="2"/>
+              <text x="407" y="74" text-anchor="middle" font-size="11" font-weight="bold" fill="#0d9488">SAR Control Register</text>
+              <text x="407" y="88" text-anchor="middle" font-size="9" font-family="monospace" class="fill-claude-muted">Binary Search State Machine</text>
+
+              <!-- Clock Input Arrow to SAR -->
+              <line x1="407" y1="20" x2="407" y2="55" stroke="#64748b" stroke-width="2"/>
+              <polygon points="404,50 407,55 410,50" fill="#64748b"/>
+              <text x="407" y="14" text-anchor="middle" font-size="8" font-family="monospace" fill="#64748b">ADC Clock (125 kHz)</text>
+
+              <!-- 10-Bit Register Visualizer inside SAR Box -->
+              <g id="c5-bits-group" transform="translate(312, 100)">
+                <!-- 10 bit boxes (B9 down to B0) -->
+                <!-- We render 10 little squares -->
+                <rect id="c5-b9" x="0" y="0" width="17" height="22" rx="2" fill="#22c55e" stroke="#333" stroke-width="1"/>
+                <text x="8.5" y="15" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" fill="white">1</text>
+                <text x="8.5" y="32" text-anchor="middle" font-size="7" font-family="monospace" class="fill-claude-muted">b9</text>
+
+                <rect id="c5-b8" x="19" y="0" width="17" height="22" rx="2" fill="#64748b" stroke="#333" stroke-width="1"/>
+                <text x="27.5" y="15" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" fill="white">0</text>
+                <text x="27.5" y="32" text-anchor="middle" font-size="7" font-family="monospace" class="fill-claude-muted">b8</text>
+
+                <rect id="c5-b7" x="38" y="0" width="17" height="22" rx="2" fill="#64748b" stroke="#333" stroke-width="1"/>
+                <text x="46.5" y="15" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" fill="white">0</text>
+                <text x="46.5" y="32" text-anchor="middle" font-size="7" font-family="monospace" class="fill-claude-muted">b7</text>
+
+                <rect id="c5-b6" x="57" y="0" width="17" height="22" rx="2" fill="#64748b" stroke="#333" stroke-width="1"/>
+                <text x="65.5" y="15" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" fill="white">0</text>
+                <text x="65.5" y="32" text-anchor="middle" font-size="7" font-family="monospace" class="fill-claude-muted">b6</text>
+
+                <rect id="c5-b5" x="76" y="0" width="17" height="22" rx="2" fill="#64748b" stroke="#333" stroke-width="1"/>
+                <text x="84.5" y="15" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" fill="white">0</text>
+                <text x="84.5" y="32" text-anchor="middle" font-size="7" font-family="monospace" class="fill-claude-muted">b5</text>
+
+                <rect id="c5-b4" x="95" y="0" width="17" height="22" rx="2" fill="#64748b" stroke="#333" stroke-width="1"/>
+                <text x="103.5" y="15" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" fill="white">0</text>
+                <text x="103.5" y="32" text-anchor="middle" font-size="7" font-family="monospace" class="fill-claude-muted">b4</text>
+
+                <rect id="c5-b3" x="114" y="0" width="17" height="22" rx="2" fill="#64748b" stroke="#333" stroke-width="1"/>
+                <text x="122.5" y="15" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" fill="white">0</text>
+                <text x="122.5" y="32" text-anchor="middle" font-size="7" font-family="monospace" class="fill-claude-muted">b3</text>
+
+                <rect id="c5-b2" x="133" y="0" width="17" height="22" rx="2" fill="#64748b" stroke="#333" stroke-width="1"/>
+                <text x="141.5" y="15" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" fill="white">0</text>
+                <text x="141.5" y="32" text-anchor="middle" font-size="7" font-family="monospace" class="fill-claude-muted">b2</text>
+
+                <rect id="c5-b1" x="152" y="0" width="17" height="22" rx="2" fill="#64748b" stroke="#333" stroke-width="1"/>
+                <text x="160.5" y="15" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" fill="white">0</text>
+                <text x="160.5" y="32" text-anchor="middle" font-size="7" font-family="monospace" class="fill-claude-muted">b1</text>
+
+                <rect id="c5-b0" x="171" y="0" width="17" height="22" rx="2" fill="#64748b" stroke="#333" stroke-width="1"/>
+                <text x="179.5" y="15" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" fill="white">0</text>
+                <text x="179.5" y="32" text-anchor="middle" font-size="7" font-family="monospace" class="fill-claude-muted">b0</text>
+              </g>
+
+              <!-- Bus from SAR to 10-Bit Internal DAC -->
+              <line x1="407" y1="145" x2="407" y2="185" stroke="#0d9488" stroke-width="4"/>
+              <text x="420" y="170" font-size="9" font-family="monospace" font-weight="bold" fill="#0d9488">10-Bit Code Bus</text>
+
+              <!-- Internal 10-Bit DAC Block -->
+              <rect x="280" y="185" width="235" height="60" rx="8" class="fill-white dark:fill-[#201e1a] stroke-slate-500" stroke-width="1.5"/>
+              <text x="397" y="210" text-anchor="middle" font-size="11" font-weight="bold" class="fill-claude-text dark:fill-claude-darkText">Internal 10-Bit R-2R DAC</text>
+              <text id="c5-dac-vref-txt" x="397" y="228" text-anchor="middle" font-size="9" font-family="monospace" fill="#ef4444">VREF = 5.00 V</text>
+
+              <!-- DAC Output to Inverting (-) Terminal of Comparator -->
+              <line x1="280" y1="215" x2="180" y2="215" stroke="#ef4444" stroke-width="2.5"/>
+              <line x1="180" y1="215" x2="180" y2="120" stroke="#ef4444" stroke-width="2.5"/>
+              <line x1="180" y1="120" x2="200" y2="120" stroke="#ef4444" stroke-width="2.5"/>
+              <circle cx="180" cy="215" r="3.5" fill="#ef4444"/>
+              <text id="c5-lbl-vdac" x="210" y="235" font-size="10" font-family="monospace" font-weight="bold" fill="#ef4444">VDAC = 2.50V</text>
+
+              <!-- Conversion Result Banner -->
+              <rect x="50" y="260" width="440" height="45" rx="6" class="fill-teal-50 dark:fill-teal-950/40 stroke-teal-300 dark:stroke-teal-800" stroke-width="1"/>
+              <text x="70" y="287" font-size="11" font-family="monospace" font-weight="bold" fill="#0d9488">ADC REGISTER [ADCH:ADCL]:</text>
+              <text id="c5-result-disp" x="250" y="287" font-size="12" font-family="monospace" font-weight="bold" class="fill-claude-text dark:fill-claude-darkText">512 (0x0200) • 0b1000000000</text>
+            </svg>
+          </div>
+
+          <!-- Probe Readouts Row -->
+          <div class="grid grid-cols-4 gap-2 text-center text-xs font-mono">
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">Analog Vin</div>
+              <div id="c5-disp-vin" class="font-bold text-teal-600 dark:text-teal-400">2.50 V</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">Current VDAC</div>
+              <div id="c5-disp-vdac" class="font-bold text-rose-600 dark:text-rose-400">2.50 V</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">Active Test Bit</div>
+              <div id="c5-disp-bit" class="font-bold text-amber-600 dark:text-amber-400">Bit 9 (MSB)</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">ADC 10-bit Count</div>
+              <div id="c5-disp-adc" class="font-bold text-emerald-600 dark:text-emerald-400">512 / 1023</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls Column -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="p-4 rounded-xl bg-[#faf9f5] dark:bg-[#191715] border border-claude-border dark:border-claude-darkBorder space-y-3.5">
+            <span class="text-xs font-bold text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-sliders text-teal-600 mr-1"></i> Interactive ADC Controls</span>
+
+            <!-- Slider: Analog Vin -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs font-mono">
+                <span class="text-claude-muted">Analog Input ($V_{in}$):</span>
+                <span id="c5-val-vin" class="font-bold text-teal-600 dark:text-teal-400">2.50 V</span>
+              </div>
+              <input type="range" id="c5-slider-vin" min="0" max="500" value="250" oninput="updateC5Vin()" class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg cursor-pointer">
+            </div>
+
+            <!-- VREF Selector -->
+            <div>
+              <label class="block text-claude-muted mb-1 text-xs font-mono">Reference Voltage ($V_{REF}$):</label>
+              <select id="c5-sel-vref" onchange="updateC5Vref()" class="w-full p-1.5 rounded-lg border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-xs font-mono">
+                <option value="5.0" selected>AVCC = 5.00V (Default Arduino)</option>
+                <option value="1.1">Internal Bandgap = 1.10V (Precision)</option>
+              </select>
+            </div>
+
+            <!-- SAR Action Buttons -->
+            <div class="grid grid-cols-3 gap-2 text-xs">
+              <button onclick="stepC5SAR()" class="py-2 px-2.5 rounded-lg font-bold bg-teal-600 text-white hover:bg-teal-700 transition flex items-center justify-center gap-1 shadow-sm">
+                <i class="fa-solid fa-forward-step"></i> <span>Step Bit</span>
+              </button>
+              <button onclick="autoC5SAR()" class="py-2 px-2.5 rounded-lg font-bold bg-[#d97757] text-white hover:bg-[#c76646] transition flex items-center justify-center gap-1 shadow-sm">
+                <i class="fa-solid fa-play"></i> <span>Auto Run</span>
+              </button>
+              <button onclick="resetC5SAR()" class="py-2 px-2.5 rounded-lg font-bold border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-claude-text dark:text-claude-darkText hover:bg-slate-100 transition">
+                Reset
+              </button>
+            </div>
+          </div>
+
+          <!-- Derivation Box -->
+          <div class="p-3.5 rounded-xl bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder text-xs space-y-1.5 font-mono">
+            <div class="font-bold text-teal-700 dark:text-teal-400">Quantization Math:</div>
+            <div class="text-claude-muted">$$ADC = \left\lfloor \frac{V_{in} \times 1024}{V_{REF}} \right\rfloor = \left\lfloor \frac{2.50 \times 1024}{5.00} \right\rfloor = \mathbf{512}$$</div>
+            <div class="text-claude-muted">$$1\text{ LSB} = \frac{V_{REF}}{1024} = \frac{5.00\text{ V}}{1024} = 4.8828\text{ mV}$$</div>
+          </div>
+
+          <!-- Code Snippet -->
+          <div class="code-block text-[11px]">
+// ATmega2560 Bare-Metal ADC Reading on ADC0 (Pin A0)
+void adc_init() {
+    ADMUX = (1 << REFS0); // AVCC with external capacitor at AREF pin
+    ADCSRA = (1 << ADEN)  // Enable ADC
+           | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // 128 Prescaler (125kHz)
+}
+uint16_t adc_read(uint8_t ch) {
+    ADMUX = (ADMUX & 0xF8) | (ch & 0x07);
+    ADCSRA |= (1 << ADSC); // Start conversion
+    while (ADCSRA & (1 << ADSC)); // Wait for hardware SAR completion
+    return ADC; // 10-bit value (ADCL | (ADCH << 8))
+}</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== CIRCUIT 6: R-2R RESISTOR LADDER 4-BIT DAC ==================== -->
+    <article id="c-r2r-dac" class="circuit-box p-6 md:p-8 space-y-6 circuit-card" data-category="analog">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-claude-border dark:border-claude-darkBorder pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="claude-pill bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 font-mono font-bold text-xs">CIRCUIT 06</span>
+          <h3 class="font-serif text-xl font-medium text-claude-text dark:text-claude-darkText">R-2R Resistor Ladder 4-Bit Digital-to-Analog Converter (DAC) with Buffer</h3>
+        </div>
+        <span class="text-xs font-mono text-claude-muted dark:text-claude-darkMuted">Tutorial Benchmark • Precision Ladder Topology</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Visual Schematic SVG -->
+        <div class="lg:col-span-7 bg-[#faf9f5] dark:bg-[#191715] p-5 rounded-xl border border-claude-border dark:border-claude-darkBorder space-y-4">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span class="text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-wave-square text-cyan-600 mr-1.5"></i> Ladder Schematic & Analog Voltmeter</span>
+            <span id="c6-code-pill" class="claude-pill bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 text-[10px] font-mono">CODE: 0b1000 (0x8 = 8)</span>
+          </div>
+
+          <div class="relative w-full aspect-[16/10] bg-white dark:bg-[#121110] rounded-lg border border-claude-border dark:border-claude-darkBorder overflow-hidden flex items-center justify-center p-2">
+            <svg viewBox="0 0 540 320" class="w-full h-full select-none">
+              <rect width="540" height="320" fill="url(#grid)" />
+
+              <!-- Ground Rail Bottom for 2R legs when bit is 0 -->
+              <line x1="40" y1="260" x2="300" y2="260" stroke="#64748b" stroke-width="2.5" stroke-linecap="round"/>
+              <text x="170" y="280" text-anchor="middle" font-size="9" font-family="monospace" fill="#64748b">GND / 0V Reference</text>
+
+              <!-- Node 0: Terminating 2R to GND -->
+              <line x1="60" y1="120" x2="60" y2="260" stroke="#64748b" stroke-width="2"/>
+              <rect x="52" y="160" width="16" height="35" rx="3" class="fill-[#f2eee6] dark:fill-[#2d2924] stroke-slate-600" stroke-width="1.5"/>
+              <text x="60" y="182" text-anchor="middle" font-size="8" font-family="monospace" class="fill-claude-muted">2R</text>
+
+              <!-- Horizontal Resistors R (10k) -->
+              <!-- Between N0 and N1 -->
+              <line x1="60" y1="120" x2="120" y2="120" stroke="#06b6d4" stroke-width="2.5"/>
+              <rect x="75" y="112" width="30" height="16" rx="3" class="fill-[#f2eee6] dark:fill-[#2d2924] stroke-slate-600" stroke-width="1.5"/>
+              <text x="90" y="124" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold">R</text>
+
+              <!-- Between N1 and N2 -->
+              <line x1="120" y1="120" x2="180" y2="120" stroke="#06b6d4" stroke-width="2.5"/>
+              <rect x="135" y="112" width="30" height="16" rx="3" class="fill-[#f2eee6] dark:fill-[#2d2924] stroke-slate-600" stroke-width="1.5"/>
+              <text x="150" y="124" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold">R</text>
+
+              <!-- Between N2 and N3 -->
+              <line x1="180" y1="120" x2="240" y2="120" stroke="#06b6d4" stroke-width="2.5"/>
+              <rect x="195" y="112" width="30" height="16" rx="3" class="fill-[#f2eee6] dark:fill-[#2d2924] stroke-slate-600" stroke-width="1.5"/>
+              <text x="210" y="124" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold">R</text>
+
+              <!-- 4 Vertical Legs 2R (20k) connected to D0, D1, D2, D3 -->
+              <!-- Bit D0 (LSB) at x=60 -->
+              <circle cx="60" cy="120" r="3.5" fill="#06b6d4"/>
+              <line id="c6-leg-d0" x1="60" y1="120" x2="60" y2="70" stroke="#64748b" stroke-width="2.5"/>
+              <rect x="52" y="70" width="16" height="30" rx="3" class="fill-[#f2eee6] dark:fill-[#2d2924] stroke-slate-600" stroke-width="1.5"/>
+              <text x="60" y="88" text-anchor="middle" font-size="8" font-family="monospace">2R</text>
+              <circle id="c6-dot-d0" cx="60" cy="50" r="6" fill="#64748b"/>
+              <text x="60" y="38" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold">D0</text>
+
+              <!-- Bit D1 at x=120 -->
+              <circle cx="120" cy="120" r="3.5" fill="#06b6d4"/>
+              <line id="c6-leg-d1" x1="120" y1="120" x2="120" y2="70" stroke="#64748b" stroke-width="2.5"/>
+              <rect x="112" y="70" width="16" height="30" rx="3" class="fill-[#f2eee6] dark:fill-[#2d2924] stroke-slate-600" stroke-width="1.5"/>
+              <text x="120" y="88" text-anchor="middle" font-size="8" font-family="monospace">2R</text>
+              <circle id="c6-dot-d1" cx="120" cy="50" r="6" fill="#64748b"/>
+              <text x="120" y="38" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold">D1</text>
+
+              <!-- Bit D2 at x=180 -->
+              <circle cx="180" cy="120" r="3.5" fill="#06b6d4"/>
+              <line id="c6-leg-d2" x1="180" y1="120" x2="180" y2="70" stroke="#64748b" stroke-width="2.5"/>
+              <rect x="172" y="70" width="16" height="30" rx="3" class="fill-[#f2eee6] dark:fill-[#2d2924] stroke-slate-600" stroke-width="1.5"/>
+              <text x="180" y="88" text-anchor="middle" font-size="8" font-family="monospace">2R</text>
+              <circle id="c6-dot-d2" cx="180" cy="50" r="6" fill="#64748b"/>
+              <text x="180" y="38" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold">D2</text>
+
+              <!-- Bit D3 (MSB) at x=240 -->
+              <circle cx="240" cy="120" r="4" fill="#06b6d4"/>
+              <line id="c6-leg-d3" x1="240" y1="120" x2="240" y2="70" stroke="#22c55e" stroke-width="2.5"/>
+              <rect x="232" y="70" width="16" height="30" rx="3" class="fill-[#f2eee6] dark:fill-[#2d2924] stroke-slate-600" stroke-width="1.5"/>
+              <text x="240" y="88" text-anchor="middle" font-size="8" font-family="monospace">2R</text>
+              <circle id="c6-dot-d3" cx="240" cy="50" r="6" fill="#22c55e"/>
+              <text x="240" y="38" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold">D3</text>
+
+              <!-- Output from Node 3 (MSB node) to Op-Amp Buffer -->
+              <line x1="240" y1="120" x2="300" y2="120" stroke="#06b6d4" stroke-width="2.5"/>
+              <polygon points="300,95 300,165 350,130" class="fill-white dark:fill-[#201e1a] stroke-slate-700 dark:stroke-slate-300" stroke-width="2"/>
+              <text x="308" y="118" font-size="12" font-family="monospace" font-weight="bold" fill="#06b6d4">+</text>
+              <text x="308" y="148" font-size="14" font-family="monospace" font-weight="bold" fill="#64748b">−</text>
+              <!-- Feedback loop for unity-gain follower -->
+              <line x1="350" y1="130" x2="370" y2="130" stroke="#06b6d4" stroke-width="2.5"/>
+              <circle cx="370" cy="130" r="3" fill="#06b6d4"/>
+              <path d="M 370 130 L 370 170 L 290 170 L 290 145 L 300 145" fill="none" stroke="#64748b" stroke-width="2"/>
+              <text x="325" y="185" text-anchor="middle" font-size="8" font-family="monospace" class="fill-claude-muted">Unity-Gain Buffer</text>
+
+              <!-- Line to Analog Voltmeter -->
+              <line x1="370" y1="130" x2="410" y2="130" stroke="#06b6d4" stroke-width="2.5"/>
+
+              <!-- Realistic Analog Voltmeter Gauge -->
+              <g transform="translate(420, 60)">
+                <!-- Gauge Background Arc -->
+                <rect x="0" y="0" width="105" height="130" rx="10" class="fill-[#f8fafc] dark:fill-[#1e1c19] stroke-slate-400 dark:stroke-slate-600" stroke-width="1.5"/>
+                <!-- Gauge Arc Scale -->
+                <path d="M 20 85 A 40 40 0 0 1 85 85" fill="none" stroke="#64748b" stroke-width="2"/>
+                <text x="18" y="98" font-size="8" font-family="monospace" fill="#64748b">0V</text>
+                <text x="52" y="40" text-anchor="middle" font-size="8" font-family="monospace" fill="#64748b">2.5V</text>
+                <text x="88" y="98" font-size="8" font-family="monospace" fill="#64748b">5V</text>
+                <!-- Needle (Animated rotation) -->
+                <!-- Pivot at cx=52.5, cy=85 -->
+                <g id="c6-needle-group" transform="rotate(0, 52.5, 85)" class="transition-transform duration-300">
+                  <line x1="52.5" y1="85" x2="52.5" y2="45" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/>
+                  <circle cx="52.5" cy="85" r="4" fill="#ef4444"/>
+                </g>
+                <text id="c6-disp-vout-gauge" x="52.5" y="118" text-anchor="middle" font-size="11" font-family="monospace" font-weight="bold" fill="#06b6d4">2.50 V</text>
+              </g>
+            </svg>
+          </div>
+
+          <!-- Voltage Probes Row -->
+          <div class="grid grid-cols-4 gap-2 text-center text-xs font-mono">
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">Bit Code (D3..D0)</div>
+              <div id="c6-disp-code" class="font-bold text-cyan-600 dark:text-cyan-400">1000 (8)</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">Step Size (ΔV)</div>
+              <div id="c6-disp-step" class="font-bold text-slate-700 dark:text-slate-300">0.3125 V</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">Vout Exact</div>
+              <div id="c6-disp-vout" class="font-bold text-emerald-600 dark:text-emerald-400">2.5000 V</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">R_Thevenin</div>
+              <div class="font-bold text-amber-600 dark:text-amber-400">10.0 kΩ</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls Column -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="p-4 rounded-xl bg-[#faf9f5] dark:bg-[#191715] border border-claude-border dark:border-claude-darkBorder space-y-3.5">
+            <span class="text-xs font-bold text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-toggle-on text-cyan-600 mr-1"></i> Digital Input Bits</span>
+
+            <!-- 4 Bit Toggle Buttons -->
+            <div class="grid grid-cols-4 gap-2">
+              <button onclick="toggleC6Bit(3)" id="c6-btn-d3" class="p-2.5 rounded-lg border border-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 text-center transition">
+                <div class="text-[9px] text-claude-muted uppercase font-mono">D3 (MSB)</div>
+                <div id="c6-val-d3" class="text-lg font-mono font-bold text-emerald-600 mt-0.5">1</div>
+              </button>
+              <button onclick="toggleC6Bit(2)" id="c6-btn-d2" class="p-2.5 rounded-lg border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-center transition">
+                <div class="text-[9px] text-claude-muted uppercase font-mono">D2</div>
+                <div id="c6-val-d2" class="text-lg font-mono font-bold text-slate-400 mt-0.5">0</div>
+              </button>
+              <button onclick="toggleC6Bit(1)" id="c6-btn-d1" class="p-2.5 rounded-lg border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-center transition">
+                <div class="text-[9px] text-claude-muted uppercase font-mono">D1</div>
+                <div id="c6-val-d1" class="text-lg font-mono font-bold text-slate-400 mt-0.5">0</div>
+              </button>
+              <button onclick="toggleC6Bit(0)" id="c6-btn-d0" class="p-2.5 rounded-lg border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-center transition">
+                <div class="text-[9px] text-claude-muted uppercase font-mono">D0 (LSB)</div>
+                <div id="c6-val-d0" class="text-lg font-mono font-bold text-slate-400 mt-0.5">0</div>
+              </button>
+            </div>
+
+            <!-- Quick Ramp Generator Buttons -->
+            <div class="flex gap-2">
+              <button onclick="stepC6Counter()" class="flex-1 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 text-white hover:bg-cyan-700 transition">
+                +1 Count (Staircase)
+              </button>
+              <button onclick="resetC6Counter()" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-claude-text dark:text-claude-darkText hover:bg-slate-100 transition">
+                Zero
+              </button>
+            </div>
+          </div>
+
+          <!-- Formula Box -->
+          <div class="p-3.5 rounded-xl bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder text-xs space-y-1.5 font-mono">
+            <div class="font-bold text-cyan-700 dark:text-cyan-400">Mathematical Transfer Function:</div>
+            <div id="c6-math-vout" class="text-claude-muted">$$V_{out} = V_{REF} \left( \frac{D_3}{2} + \frac{D_2}{4} + \frac{D_1}{8} + \frac{D_0}{16} \right) = 5.0 \times \frac{8}{16} = \mathbf{2.500\text{ V}}$$</div>
+            <div class="text-[11px] text-claude-muted">Note: Only two resistor values are required ($R$ and $2R$), avoiding the high component tolerance problems of binary-weighted DACs!</div>
+          </div>
+
+          <!-- Code Snippet -->
+          <div class="code-block text-[11px]">
+// ATmega2560 Driving R-2R DAC on PORTA (Pins PA0-PA3)
+void setup() {
+    DDRA |= 0x0F; // PA0..PA3 as OUTPUT
+}
+void loop() {
+    // Generate 4-bit staircase ramp wave
+    for (uint8_t count = 0; count < 16; count++) {
+        PORTA = (PORTA & 0xF0) | (count & 0x0F);
+        _delay_us(100);
+    }
+}</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== CIRCUIT 7: HD44780 16x2 LCD 4-BIT INTERFACE ==================== -->
+    <article id="c-lcd-interface" class="circuit-box p-6 md:p-8 space-y-6 circuit-card" data-category="system">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-claude-border dark:border-claude-darkBorder pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="claude-pill bg-lime-100 dark:bg-lime-950 text-lime-800 dark:text-lime-300 font-mono font-bold text-xs">CIRCUIT 07</span>
+          <h3 class="font-serif text-xl font-medium text-claude-text dark:text-claude-darkText">HD44780 16x2 Dot-Matrix Character LCD 4-Bit Interfacing Interface</h3>
+        </div>
+        <span class="text-xs font-mono text-claude-muted dark:text-claude-darkMuted">Tutorial 14 / Chapter 7 • Nibble Transmission Protocol</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Visual Schematic & Realistic Display -->
+        <div class="lg:col-span-7 bg-[#faf9f5] dark:bg-[#191715] p-5 rounded-xl border border-claude-border dark:border-claude-darkBorder space-y-4">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span class="text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-tv text-lime-600 mr-1.5"></i> Interactive LCD 16x2 Module</span>
+            <span id="c7-status-pill" class="claude-pill bg-lime-100 dark:bg-lime-950 text-lime-800 dark:text-lime-300 text-[10px] font-mono">LCD READY (4-BIT MODE)</span>
+          </div>
+
+          <!-- Realistic 16x2 Retro LCD Bezel -->
+          <div class="relative w-full bg-[#1e2316] p-4 md:p-6 rounded-2xl border-4 border-[#2d3420] shadow-inner select-none space-y-2">
+            <!-- Screen Header & Contrast Indicator -->
+            <div class="flex justify-between items-center text-[10px] font-mono text-[#8ea832]/60">
+              <span>HD44780 16x2 CONTROLLER</span>
+              <span>DDRAM ADDR: <span id="c7-disp-addr">0x00</span></span>
+            </div>
+
+            <!-- Green LCD Backlit Glass Display -->
+            <div id="c7-lcd-glass" class="p-4 rounded-xl bg-[#7f9a26] border border-[#6b8220] shadow-[inset_0_2px_8px_rgba(0,0,0,0.3)] font-mono text-black transition-opacity duration-200">
+              <!-- Line 1 (16 chars) -->
+              <div id="c7-lcd-line1" class="text-sm md:text-base font-bold tracking-[0.25em] text-[#1a2205] whitespace-pre overflow-hidden h-7 flex items-center border-b border-[#6f8721]/30">ATmega2560 LAB  </div>
+              <!-- Line 2 (16 chars) -->
+              <div id="c7-lcd-line2" class="text-sm md:text-base font-bold tracking-[0.25em] text-[#1a2205] whitespace-pre overflow-hidden h-7 flex items-center">JU EE 3RD YEAR  </div>
+            </div>
+
+            <!-- Microcontroller Connection Pins Status -->
+            <div class="grid grid-cols-6 gap-1 text-[10px] font-mono text-center pt-1 text-slate-300">
+              <div class="p-1 rounded bg-[#2b331c]">
+                <div class="text-[#8ea832]">RS (PC0)</div>
+                <div id="c7-pin-rs" class="font-bold text-white">1 (DATA)</div>
+              </div>
+              <div class="p-1 rounded bg-[#2b331c]">
+                <div class="text-[#8ea832]">E (PC1)</div>
+                <div id="c7-pin-e" class="font-bold text-white">0</div>
+              </div>
+              <div class="p-1 rounded bg-[#2b331c]">
+                <div class="text-[#8ea832]">D4 (PC4)</div>
+                <div id="c7-pin-d4" class="font-bold text-white">0</div>
+              </div>
+              <div class="p-1 rounded bg-[#2b331c]">
+                <div class="text-[#8ea832]">D5 (PC5)</div>
+                <div id="c7-pin-d5" class="font-bold text-white">0</div>
+              </div>
+              <div class="p-1 rounded bg-[#2b331c]">
+                <div class="text-[#8ea832]">D6 (PC6)</div>
+                <div id="c7-pin-d6" class="font-bold text-white">1</div>
+              </div>
+              <div class="p-1 rounded bg-[#2b331c]">
+                <div class="text-[#8ea832]">D7 (PC7)</div>
+                <div id="c7-pin-d7" class="font-bold text-white">0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nibble Analysis Card -->
+          <div class="p-3.5 rounded-xl bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder space-y-2 text-xs font-mono">
+            <div class="flex justify-between items-center">
+              <span class="font-bold text-lime-700 dark:text-lime-400">4-Bit Nibble Transmission Analyzer:</span>
+              <span id="c7-char-ascii" class="text-claude-muted">Last Char: 'A' (0x41)</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-center text-[11px]">
+              <div class="p-2 rounded bg-lime-50 dark:bg-lime-950/30 border border-lime-200 dark:border-lime-900">
+                <span class="text-claude-muted">Upper Nibble (D7..D4):</span>
+                <div id="c7-disp-upper" class="font-bold text-lime-700 dark:text-lime-300">0x4 (0b0100) + E Pulse</div>
+              </div>
+              <div class="p-2 rounded bg-lime-50 dark:bg-lime-950/30 border border-lime-200 dark:border-lime-900">
+                <span class="text-claude-muted">Lower Nibble (D3..D0):</span>
+                <div id="c7-disp-lower" class="font-bold text-lime-700 dark:text-lime-300">0x1 (0b0001) + E Pulse</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls Column -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="p-4 rounded-xl bg-[#faf9f5] dark:bg-[#191715] border border-claude-border dark:border-claude-darkBorder space-y-3.5">
+            <span class="text-xs font-bold text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-keyboard text-lime-600 mr-1"></i> Send Text / Commands</span>
+
+            <!-- Text Input Field -->
+            <div class="space-y-1">
+              <label class="block text-xs font-mono text-claude-muted">Custom Text (Max 16 chars):</label>
+              <input type="text" id="c7-input-text" maxlength="16" value="HELLO WORLD!" class="w-full p-2 rounded-lg border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-xs font-mono">
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <button onclick="sendC7Text(1)" class="py-2 rounded-lg font-bold bg-lime-600 text-white hover:bg-lime-700 transition flex items-center justify-center gap-1 shadow-sm">
+                <i class="fa-solid fa-arrow-right-to-bracket"></i> <span>Send to Line 1</span>
+              </button>
+              <button onclick="sendC7Text(2)" class="py-2 rounded-lg font-bold bg-[#d97757] text-white hover:bg-[#c76646] transition flex items-center justify-center gap-1 shadow-sm">
+                <i class="fa-solid fa-arrow-right-to-bracket"></i> <span>Send to Line 2</span>
+              </button>
+              <button onclick="clearC7LCD()" class="py-1.5 rounded-lg font-bold border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-claude-text dark:text-claude-darkText hover:bg-slate-100 transition">
+                Clear Screen (0x01)
+              </button>
+              <button onclick="initC7LCD()" class="py-1.5 rounded-lg font-bold border border-lime-300 dark:border-lime-800 bg-lime-50 dark:bg-lime-950/40 text-lime-800 dark:text-lime-300 hover:bg-lime-100 transition">
+                Re-init 4-Bit Mode
+              </button>
+            </div>
+
+            <!-- Contrast Potentiometer Slider -->
+            <div class="space-y-1 pt-1">
+              <div class="flex justify-between text-xs font-mono">
+                <span class="text-claude-muted">Contrast Potentiometer (V0):</span>
+                <span id="c7-val-contrast" class="font-bold text-claude-text dark:text-claude-darkText">100%</span>
+              </div>
+              <input type="range" id="c7-slider-contrast" min="20" max="100" value="100" oninput="updateC7Contrast()" class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg cursor-pointer">
+            </div>
+          </div>
+
+          <!-- Code Snippet -->
+          <div class="code-block text-[11px]">
+// ATmega2560 4-Bit LCD Driver (Port C)
+#define LCD_DATA_PORT PORTC
+#define LCD_RS PC0
+#define LCD_E  PC1
+
+void lcd_enable_pulse() {
+    LCD_DATA_PORT |= (1 << LCD_E);
+    _delay_us(1); // Enable pulse width > 450 ns
+    LCD_DATA_PORT &= ~(1 << LCD_E);
+    _delay_us(40); // Command execution time > 37 us
+}
+
+void lcd_send_byte(uint8_t val, uint8_t is_data) {
+    if (is_data) LCD_DATA_PORT |= (1 << LCD_RS);
+    else LCD_DATA_PORT &= ~(1 << LCD_RS);
+
+    // Send Upper Nibble (D7..D4 on PC7..PC4)
+    LCD_DATA_PORT = (LCD_DATA_PORT & 0x0F) | (val & 0xF0);
+    lcd_enable_pulse();
+
+    // Send Lower Nibble (D3..D0 shifted to PC7..PC4)
+    LCD_DATA_PORT = (LCD_DATA_PORT & 0x0F) | ((val << 4) & 0xF0);
+    lcd_enable_pulse();
+}</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== CIRCUIT 8: WATCHDOG TIMER & SLEEP POWER STATES ==================== -->
+    <article id="c-watchdog-sleep" class="circuit-box p-6 md:p-8 space-y-6 circuit-card" data-category="system">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-claude-border dark:border-claude-darkBorder pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="claude-pill bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 font-mono font-bold text-xs">CIRCUIT 08</span>
+          <h3 class="font-serif text-xl font-medium text-claude-text dark:text-claude-darkText">Watchdog Timer (WDT) & Deep Sleep Power State Architecture</h3>
+        </div>
+        <span class="text-xs font-mono text-claude-muted dark:text-claude-darkMuted">Chapters 8 & 9 • WDTCSR & SMCR Registers</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Visual Schematic SVG -->
+        <div class="lg:col-span-7 bg-[#faf9f5] dark:bg-[#191715] p-5 rounded-xl border border-claude-border dark:border-claude-darkBorder space-y-4">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span class="text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-shield-dog text-indigo-600 mr-1.5"></i> Watchdog & Power Gating Die Block</span>
+            <span id="c8-status-pill" class="claude-pill bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-mono">MCU ACTIVE (15.0 mA)</span>
+          </div>
+
+          <div class="relative w-full aspect-[16/10] bg-white dark:bg-[#121110] rounded-lg border border-claude-border dark:border-claude-darkBorder overflow-hidden flex items-center justify-center p-2">
+            <svg viewBox="0 0 540 320" class="w-full h-full select-none">
+              <rect width="540" height="320" fill="url(#grid)" />
+
+              <!-- Microcontroller Silicon Outline -->
+              <rect x="20" y="20" width="500" height="280" rx="14" fill="none" stroke="#6366f1" stroke-width="2" stroke-dasharray="8,4"/>
+              <text x="35" y="42" font-size="11" font-weight="bold" fill="#6366f1">ATmega2560 Power Domains</text>
+
+              <!-- Dedicated 128 kHz Low-Power RC Oscillator -->
+              <rect x="40" y="65" width="130" height="55" rx="6" class="fill-indigo-50 dark:fill-indigo-950/40 stroke-indigo-400" stroke-width="1.5"/>
+              <text x="105" y="88" text-anchor="middle" font-size="10" font-weight="bold" fill="#4f46e5">128 kHz RC Osc</text>
+              <text x="105" y="104" text-anchor="middle" font-size="8" font-family="monospace" class="fill-claude-muted">Separate Clock Domain</text>
+
+              <!-- Line from 128kHz Osc to WDT Prescaler -->
+              <line x1="170" y1="92" x2="210" y2="92" stroke="#6366f1" stroke-width="2.5"/>
+              <polygon points="206,89 212,92 206,95" fill="#6366f1"/>
+
+              <!-- Watchdog Prescaler & Counter Block -->
+              <rect x="210" y="60" width="160" height="85" rx="8" class="fill-white dark:fill-[#201e1a] stroke-slate-500" stroke-width="1.5"/>
+              <text x="290" y="80" text-anchor="middle" font-size="10" font-weight="bold" class="fill-claude-text dark:fill-claude-darkText">WDT Prescaler</text>
+              <text id="c8-prescaler-txt" x="290" y="94" text-anchor="middle" font-size="8" font-family="monospace" fill="#6366f1">2048K cycles (2.0s)</text>
+              
+              <!-- Countdown Progress Bar inside SVG -->
+              <rect x="225" y="105" width="130" height="14" rx="3" fill="#e2e8f0" class="dark:fill-slate-800"/>
+              <rect id="c8-svg-prog" x="225" y="105" width="130" height="14" rx="3" fill="#22c55e" class="transition-all duration-100"/>
+              <text id="c8-svg-prog-txt" x="290" y="116" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" fill="white">100%</text>
+
+              <!-- Reset Output Line from WDT to MCU Reset Controller -->
+              <line x1="370" y1="92" x2="420" y2="92" stroke="#ef4444" stroke-width="2.5"/>
+              <circle cx="420" cy="92" r="4" fill="#ef4444"/>
+              <text x="435" y="96" font-size="9" font-family="monospace" font-weight="bold" fill="#ef4444">RESET LINE</text>
+
+              <!-- CPU Core and Clock Gating Block -->
+              <rect id="c8-cpu-block" x="40" y="160" width="220" height="120" rx="8" class="fill-white dark:fill-[#201e1a] stroke-slate-600" stroke-width="2"/>
+              <text x="150" y="185" text-anchor="middle" font-size="11" font-weight="bold" fill="#d97757">AVR CPU Core</text>
+              
+              <!-- Clock Gate Switch -->
+              <rect id="c8-clock-gate" x="60" y="200" width="80" height="24" rx="3" class="fill-emerald-100 stroke-emerald-500" stroke-width="1.5"/>
+              <text id="c8-clock-gate-txt" x="100" y="216" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" fill="#047857">16MHz CLK: ON</text>
+
+              <text x="150" y="245" text-anchor="middle" font-size="9" font-family="monospace" class="fill-claude-muted">Registers: R0-R31, PC, SP</text>
+              <text id="c8-cpu-status-txt" x="150" y="265" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" class="fill-emerald-600">STATE: RUNNING</text>
+
+              <!-- Power Consumption Gauge (Ammeter) -->
+              <g transform="translate(300, 160)">
+                <rect x="0" y="0" width="200" height="120" rx="8" class="fill-slate-50 dark:fill-[#1e1c19] stroke-indigo-300 dark:stroke-indigo-800" stroke-width="1.5"/>
+                <text x="100" y="22" text-anchor="middle" font-size="10" font-family="monospace" font-weight="bold" fill="#4f46e5">Power Consumption (ICC)</text>
+                
+                <circle cx="100" cy="75" r="35" fill="none" stroke="#cbd5e1" stroke-width="4"/>
+                <path id="c8-meter-arc" d="M 65 75 A 35 35 0 0 1 135 75" fill="none" stroke="#4f46e5" stroke-width="4"/>
+                
+                <text id="c8-disp-curr" x="100" y="75" text-anchor="middle" font-size="16" font-family="monospace" font-weight="bold" fill="#4f46e5">15.0 mA</text>
+                <text id="c8-disp-mode" x="100" y="92" text-anchor="middle" font-size="9" font-family="monospace" class="fill-claude-muted">ACTIVE MODE</text>
+                <text x="100" y="110" text-anchor="middle" font-size="8" font-family="monospace" class="fill-slate-400">99.997% Power Cut in Deep Sleep</text>
+              </g>
+            </svg>
+          </div>
+
+          <!-- Watchdog Control Row -->
+          <div class="grid grid-cols-3 gap-2 text-center text-xs font-mono">
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">WDT Timeout</div>
+              <div id="c8-disp-timeout" class="font-bold text-indigo-600 dark:text-indigo-400">2.0 Seconds</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">WDTCSR.WDE</div>
+              <div class="font-bold text-emerald-600 dark:text-emerald-400">1 (Reset Enabled)</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">System State</div>
+              <div id="c8-disp-sys" class="font-bold text-emerald-600 dark:text-emerald-400">NORMAL RUN</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls Column -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="p-4 rounded-xl bg-[#faf9f5] dark:bg-[#191715] border border-claude-border dark:border-claude-darkBorder space-y-3.5">
+            <span class="text-xs font-bold text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-gamepad text-indigo-600 mr-1"></i> Interactive Watchdog & Sleep Controls</span>
+
+            <!-- Pat the Dog Button -->
+            <button onclick="patTheDog()" class="w-full py-2.5 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition flex items-center justify-center gap-2 shadow-sm">
+              <i class="fa-solid fa-paw"></i> <span>Pat the Dog (wdt_reset())</span>
+            </button>
+
+            <!-- Simulate MCU Crash / Freeze Button -->
+            <button onclick="simulateCrash()" id="c8-btn-crash" class="w-full py-2 rounded-lg text-xs font-bold border border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 hover:bg-rose-100 transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-triangle-exclamation text-rose-500"></i> <span>Simulate MCU Infinite Loop / Deadlock</span>
+            </button>
+
+            <!-- Sleep Mode Selector -->
+            <div>
+              <label class="block text-claude-muted mb-1 text-xs font-mono">Select Sleep Mode (SMCR):</label>
+              <select id="c8-sel-sleep" onchange="updateC8SleepMode()" class="w-full p-1.5 rounded-lg border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-xs font-mono">
+                <option value="active" selected>Active Mode (15.0 mA, All Clocks Running)</option>
+                <option value="idle">Idle Mode (3.3 mA, CPU Stopped, Timers Run)</option>
+                <option value="adc">ADC Noise Reduction (1.1 mA, ADC Runs)</option>
+                <option value="powerdown">Power-down Mode (0.5 µA, Ultra Deep Sleep)</option>
+              </select>
+            </div>
+
+            <!-- Wake Up Button -->
+            <button onclick="wakeUpMCU()" class="w-full py-1.5 rounded-lg text-xs font-bold border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-claude-text dark:text-claude-darkText hover:bg-slate-100 transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-bolt text-amber-500"></i> <span>Trigger INT0 External Interrupt (Wake Up)</span>
+            </button>
+          </div>
+
+          <!-- Code Snippet -->
+          <div class="code-block text-[11px]">
+#include &lt;avr/wdt.h&gt;
+#include &lt;avr/sleep.h&gt;
+
+void setup() {
+    // Enable Watchdog with 2s timeout
+    wdt_enable(WDTO_2S);
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+}
+
+void loop() {
+    wdt_reset(); // Pat the dog every cycle!
+    
+    // Enter deep sleep until INT0 pin change occurs
+    sleep_enable();
+    sleep_cpu();
+    sleep_disable();
+}</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== CIRCUIT 9: FPGA CMOS TRANSMISSION GATE ==================== -->
+    <article id="c-cmos-tg" class="circuit-box p-6 md:p-8 space-y-6 circuit-card" data-category="memory">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-claude-border dark:border-claude-darkBorder pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="claude-pill bg-pink-100 dark:bg-pink-950 text-pink-800 dark:text-pink-300 font-mono font-bold text-xs">CIRCUIT 09</span>
+          <h3 class="font-serif text-xl font-medium text-claude-text dark:text-claude-darkText">FPGA CMOS Transmission Gate vs Single NMOS Pass-Transistor Switch</h3>
+        </div>
+        <span class="text-xs font-mono text-claude-muted dark:text-claude-darkMuted">Paper Set-1, Q4(c) • Programmable Interconnect Silicon</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Visual Schematic SVG -->
+        <div class="lg:col-span-7 bg-[#faf9f5] dark:bg-[#191715] p-5 rounded-xl border border-claude-border dark:border-claude-darkBorder space-y-4">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span class="text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-code-compare text-pink-600 mr-1.5"></i> Silicon Routing Switch Comparison</span>
+            <span id="c9-status-pill" class="claude-pill bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-mono">GATE CONDUCTING (S = 1)</span>
+          </div>
+
+          <div class="relative w-full aspect-[16/10] bg-white dark:bg-[#121110] rounded-lg border border-claude-border dark:border-claude-darkBorder overflow-hidden flex items-center justify-center p-2">
+            <svg viewBox="0 0 540 320" class="w-full h-full select-none">
+              <rect width="540" height="320" fill="url(#grid)" />
+
+              <!-- Divider line between two architectures -->
+              <line x1="270" y1="20" x2="270" y2="300" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+              <!-- ================= LEFT: SINGLE NMOS PASS-TRANSISTOR ================= -->
+              <text x="135" y="35" text-anchor="middle" font-size="11" font-weight="bold" fill="#ef4444">A) Single NMOS Pass Gate</text>
+              <text x="135" y="50" text-anchor="middle" font-size="9" font-family="monospace" class="fill-claude-muted">Suffers Threshold Drop (Vth = 0.7V)</text>
+
+              <!-- Vin terminal -->
+              <circle cx="35" cy="140" r="4" fill="#3b82f6"/>
+              <text x="35" y="125" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" fill="#3b82f6">Vin</text>
+              <line x1="35" y1="140" x2="85" y2="140" stroke="#3b82f6" stroke-width="2.5"/>
+
+              <!-- Single NMOS Transistor -->
+              <rect id="c9-box-nmos" x="85" y="125" width="40" height="30" rx="4" class="fill-slate-100 stroke-slate-500" stroke-width="1.5"/>
+              <text x="105" y="144" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold">NMOS</text>
+              
+              <!-- Gate Control S -->
+              <line x1="105" y1="75" x2="105" y2="125" stroke="#64748b" stroke-width="2"/>
+              <circle cx="105" cy="75" r="3.5" fill="#64748b"/>
+              <text id="c9-lbl-gs1" x="105" y="65" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" fill="#64748b">S = 1 (5V)</text>
+
+              <!-- Output lead -->
+              <line x1="125" y1="140" x2="190" y2="140" stroke="#ef4444" stroke-width="2.5"/>
+              <circle cx="190" cy="140" r="4" fill="#ef4444"/>
+              <text x="190" y="125" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" fill="#ef4444">Vout</text>
+
+              <!-- Warning Callout Box for NMOS Threshold Loss -->
+              <rect x="35" y="185" width="200" height="65" rx="6" class="fill-red-50 dark:fill-red-950/30 stroke-red-200 dark:stroke-red-900" stroke-width="1"/>
+              <text x="45" y="205" font-size="9" font-family="monospace" font-weight="bold" fill="#ef4444">Threshold Drop Hazard:</text>
+              <text id="c9-disp-vdrop" x="45" y="222" font-size="9" font-family="monospace" class="fill-claude-text dark:fill-claude-darkText">Vout = VDD - Vth = 4.30V</text>
+              <text x="45" y="238" font-size="8" font-family="monospace" class="fill-claude-muted">Degraded Logic 1 (Noise Margin Loss)</text>
+
+              <!-- ================= RIGHT: CMOS TRANSMISSION GATE (TG) ================= -->
+              <text x="405" y="35" text-anchor="middle" font-size="11" font-weight="bold" fill="#22c55e">B) CMOS Transmission Gate</text>
+              <text x="405" y="50" text-anchor="middle" font-size="9" font-family="monospace" class="fill-claude-muted">Full Rail-to-Rail Transfer (0V to 5V)</text>
+
+              <!-- Vin terminal -->
+              <circle cx="305" cy="140" r="4" fill="#3b82f6"/>
+              <text x="305" y="125" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" fill="#3b82f6">Vin</text>
+              <line x1="305" y1="140" x2="340" y2="140" stroke="#3b82f6" stroke-width="2.5"/>
+              
+              <!-- Split to NMOS (bottom) and PMOS (top) -->
+              <path d="M 340 140 L 340 100 L 370 100" fill="none" stroke="#3b82f6" stroke-width="2"/>
+              <path d="M 340 140 L 340 180 L 370 180" fill="none" stroke="#3b82f6" stroke-width="2"/>
+
+              <!-- PMOS Top Transistor (with Inversion Bubble on Gate) -->
+              <rect id="c9-box-pmos" x="370" y="85" width="44" height="30" rx="4" class="fill-red-100 stroke-red-500" stroke-width="1.5"/>
+              <text x="392" y="104" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" fill="#ef4444">PMOS</text>
+              <!-- Gate ~S -->
+              <line x1="392" y1="65" x2="392" y2="80" stroke="#64748b" stroke-width="2"/>
+              <circle cx="392" cy="82" r="2.5" fill="none" stroke="#64748b" stroke-width="1.5"/>
+              <text id="c9-lbl-gs2" x="392" y="58" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" fill="#64748b">~S = 0 (0V)</text>
+
+              <!-- NMOS Bottom Transistor -->
+              <rect id="c9-box-nmos2" x="370" y="165" width="44" height="30" rx="4" class="fill-blue-100 stroke-blue-500" stroke-width="1.5"/>
+              <text x="392" y="184" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" fill="#3b82f6">NMOS</text>
+              <!-- Gate S -->
+              <line x1="392" y1="215" x2="392" y2="195" stroke="#64748b" stroke-width="2"/>
+              <text id="c9-lbl-gs3" x="392" y="230" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" fill="#64748b">S = 1 (5V)</text>
+
+              <!-- Rejoin outputs -->
+              <path d="M 414 100 L 445 100 L 445 140" fill="none" stroke="#22c55e" stroke-width="2"/>
+              <path d="M 414 180 L 445 180 L 445 140" fill="none" stroke="#22c55e" stroke-width="2"/>
+              <line x1="445" y1="140" x2="495" y2="140" stroke="#22c55e" stroke-width="2.5"/>
+              <circle cx="495" cy="140" r="4" fill="#22c55e"/>
+              <text x="495" y="125" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" fill="#22c55e">Vout</text>
+
+              <!-- Success Callout Box for CMOS Transmission Gate -->
+              <rect x="315" y="245" width="200" height="55" rx="6" class="fill-emerald-50 dark:fill-emerald-950/30 stroke-emerald-200 dark:stroke-emerald-900" stroke-width="1"/>
+              <text x="325" y="265" font-size="9" font-family="monospace" font-weight="bold" fill="#059669">Full Rail-to-Rail Fidelity:</text>
+              <text id="c9-disp-tgout" x="325" y="282" font-size="9" font-family="monospace" class="fill-claude-text dark:fill-claude-darkText">Vout = Vin = 5.00V (Zero Loss!)</text>
+            </svg>
+          </div>
+
+          <!-- Readouts Row -->
+          <div class="grid grid-cols-3 gap-2 text-center text-xs font-mono">
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">Analog Vin</div>
+              <div id="c9-disp-vin" class="font-bold text-blue-600">5.00 V</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">Single NMOS Vout</div>
+              <div id="c9-disp-nmos-out" class="font-bold text-rose-600">4.30 V</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">CMOS TG Vout</div>
+              <div id="c9-disp-tg-out" class="font-bold text-emerald-600">5.00 V</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls Column -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="p-4 rounded-xl bg-[#faf9f5] dark:bg-[#191715] border border-claude-border dark:border-claude-darkBorder space-y-3.5">
+            <span class="text-xs font-bold text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-sliders text-pink-600 mr-1"></i> Interactive Switch Controls</span>
+
+            <!-- Toggle S Button -->
+            <button id="c9-btn-toggle" onclick="toggleC9Select()" class="w-full py-2.5 rounded-lg text-xs font-bold bg-[#d97757] text-white shadow-sm hover:bg-[#c76646] transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-toggle-on"></i> <span>Gate Enable: S = 1 (ON)</span>
+            </button>
+
+            <!-- Vin Slider -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs font-mono">
+                <span class="text-claude-muted">Input Signal ($V_{in}$):</span>
+                <span id="c9-val-vin" class="font-bold text-claude-text dark:text-claude-darkText">5.00 V</span>
+              </div>
+              <input type="range" id="c9-slider-vin" min="0" max="50" value="50" oninput="updateC9()" class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg cursor-pointer">
+            </div>
+          </div>
+
+          <!-- Theory Box -->
+          <div class="p-4 rounded-xl bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder text-xs space-y-2">
+            <div class="font-bold text-pink-700 dark:text-pink-400">Class Test Theory: Why FPGAs Use Transmission Gates</div>
+            <p class="text-claude-muted leading-relaxed">
+              When routing digital signals across an FPGA's programmable routing matrix, an NMOS transistor passes a logic <code>0</code> ($0	ext{V}$) with zero attenuation, but cannot pass a logic <code>1</code> ($5	ext{V}$) higher than $V_{DD} - V_{th} = 4.3	ext{V}$.
+              <br><br>
+              By pairing NMOS in parallel with PMOS (driven by complementary control $S$ and $\overline{S}$), the PMOS device conducts strongly at high voltages, pulling the output all the way up to $V_{DD} = 5.0	ext{V}$. This ensures zero signal loss through multiple routing hops!
+            </p>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== CIRCUIT 10: DUAL LED BLINK & HARDWARE PULSE COUNTER ==================== -->
+    <article id="c-dual-timer" class="circuit-box p-6 md:p-8 space-y-6 circuit-card" data-category="system">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-claude-border dark:border-claude-darkBorder pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="claude-pill bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-300 font-mono font-bold text-xs">CIRCUIT 10</span>
+          <h3 class="font-serif text-xl font-medium text-claude-text dark:text-claude-darkText">Dual Independent LED Blink & Hardware Pulse Counter (Timer 3 CTC + Counter T5)</h3>
+        </div>
+        <span class="text-xs font-mono text-claude-muted dark:text-claude-darkMuted">Tutorials 10 & 11 • Non-Blocking Timers & External Pin PL2</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Visual Schematic SVG -->
+        <div class="lg:col-span-7 bg-[#faf9f5] dark:bg-[#191715] p-5 rounded-xl border border-claude-border dark:border-claude-darkBorder space-y-4">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span class="text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-stopwatch text-orange-600 mr-1.5"></i> Dual Timing & Counter Schematic</span>
+            <span class="claude-pill bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-mono">ALL CHANNELS ACTIVE</span>
+          </div>
+
+          <div class="relative w-full aspect-[16/10] bg-white dark:bg-[#121110] rounded-lg border border-claude-border dark:border-claude-darkBorder overflow-hidden flex items-center justify-center p-2">
+            <svg viewBox="0 0 540 320" class="w-full h-full select-none">
+              <rect width="540" height="320" fill="url(#grid)" />
+
+              <!-- ATmega2560 Silicon Core -->
+              <rect x="30" y="30" width="220" height="260" rx="12" class="fill-white dark:fill-[#201e1a] stroke-slate-500" stroke-width="2"/>
+              <text x="140" y="58" text-anchor="middle" font-size="12" font-weight="bold" fill="#d97757">ATmega2560 MCU</text>
+
+              <!-- Channel 1: Software Loop LED on PA0 -->
+              <rect x="50" y="75" width="180" height="45" rx="6" class="fill-amber-50 dark:fill-amber-950/30 stroke-amber-300 dark:stroke-amber-800" stroke-width="1"/>
+              <text x="60" y="93" font-size="10" font-weight="bold" fill="#d97757">Channel 1: PA0 (Pin 22)</text>
+              <text x="60" y="108" font-size="8" font-family="monospace" class="fill-claude-muted">Software Delay Loop</text>
+              <!-- Wire to LED 1 -->
+              <line x1="230" y1="97" x2="340" y2="97" stroke="#f59e0b" stroke-width="2.5"/>
+              <circle id="c10-led1" cx="370" cy="97" r="16" fill="#f59e0b" class="led-glow-amber transition-all duration-150"/>
+              <text x="415" y="102" font-size="10" font-family="monospace" font-weight="bold" fill="#f59e0b">LED 1 (PA0)</text>
+
+              <!-- Channel 2: Hardware Timer 3 CTC on PB7 / OC3A -->
+              <rect x="50" y="135" width="180" height="45" rx="6" class="fill-blue-50 dark:fill-blue-950/30 stroke-blue-300 dark:stroke-blue-800" stroke-width="1"/>
+              <text x="60" y="153" font-size="10" font-weight="bold" fill="#3b82f6">Channel 2: PB7 (Pin 13)</text>
+              <text x="60" y="168" font-size="8" font-family="monospace" class="fill-claude-muted">Timer 3 CTC (OC3A Toggle)</text>
+              <!-- Wire to LED 2 -->
+              <line x1="230" y1="157" x2="340" y2="157" stroke="#3b82f6" stroke-width="2.5"/>
+              <circle id="c10-led2" cx="370" cy="157" r="16" fill="#3b82f6" class="led-glow-blue transition-all duration-150"/>
+              <text x="415" y="162" font-size="10" font-family="monospace" font-weight="bold" fill="#3b82f6">LED 2 (OC3A)</text>
+
+              <!-- Channel 3: External Pulse Counter Pin T5 (PL2 / Pin 37) -->
+              <rect x="50" y="195" width="180" height="75" rx="6" class="fill-emerald-50 dark:fill-emerald-950/30 stroke-emerald-300 dark:stroke-emerald-800" stroke-width="1"/>
+              <text x="60" y="215" font-size="10" font-weight="bold" fill="#059669">Counter: T5 (Pin 37 / PL2)</text>
+              <text x="60" y="230" font-size="8" font-family="monospace" class="fill-claude-muted">Timer 5 External Clock Source</text>
+              <text id="c10-disp-tcnt5-svg" x="60" y="255" font-size="12" font-family="monospace" font-weight="bold" fill="#059669">TCNT5 = 0x0000 (0)</text>
+
+              <!-- Wire to Sensor Module on Right -->
+              <line x1="230" y1="230" x2="310" y2="230" stroke="#059669" stroke-width="2.5"/>
+
+              <!-- Optical / Gear Tooth Sensor Graphic -->
+              <g transform="translate(320, 200)">
+                <rect x="0" y="0" width="190" height="70" rx="8" class="fill-[#f8fafc] dark:fill-[#1e1c19] stroke-slate-400" stroke-width="1.5"/>
+                <text x="95" y="18" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" fill="#059669">Optocoupler Gear Sensor</text>
+                
+                <!-- Rotating Gear icon / pulse dot -->
+                <circle id="c10-pulse-dot" cx="35" cy="45" r="14" fill="#059669" class="transition-all duration-100"/>
+                <text x="35" y="49" text-anchor="middle" font-size="10" font-family="monospace" fill="white" font-weight="bold">T5</text>
+
+                <text id="c10-pulse-status" x="65" y="42" font-size="9" font-family="monospace" font-weight="bold" class="fill-claude-text dark:fill-claude-darkText">Sensor Idle</text>
+                <text x="65" y="56" font-size="8" font-family="monospace" class="fill-claude-muted">Counts Falling Edges</text>
+              </g>
+            </svg>
+          </div>
+
+          <!-- Counter Readouts Row -->
+          <div class="grid grid-cols-3 gap-2 text-center text-xs font-mono">
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">LED 1 (Software)</div>
+              <div id="c10-disp-s1" class="font-bold text-amber-600">Period: 800 ms</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">LED 2 (Timer 3 CTC)</div>
+              <div id="c10-disp-s2" class="font-bold text-blue-600">Freq: 2.0 Hz</div>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-[#201e1a] border border-claude-border dark:border-claude-darkBorder">
+              <div class="text-[10px] text-claude-muted">TCNT5 Pulse Count</div>
+              <div id="c10-disp-count" class="font-bold text-emerald-600">0 Pulses</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls Column -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="p-4 rounded-xl bg-[#faf9f5] dark:bg-[#191715] border border-claude-border dark:border-claude-darkBorder space-y-3.5">
+            <span class="text-xs font-bold text-claude-text dark:text-claude-darkText"><i class="fa-solid fa-sliders text-orange-600 mr-1"></i> Interactive Timing & Sensor Controls</span>
+
+            <!-- Trigger Pulse Button -->
+            <button onclick="pulseC10Sensor()" class="w-full py-2.5 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition flex items-center justify-center gap-2 shadow-sm">
+              <i class="fa-solid fa-gear"></i> <span>Pass Gear Tooth (Trigger 1 Falling Edge on T5)</span>
+            </button>
+
+            <!-- Auto-Rotation Toggle -->
+            <button id="c10-btn-auto" onclick="toggleC10AutoPulse()" class="w-full py-2 rounded-lg text-xs font-bold border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-rotate text-emerald-600"></i> <span>Start Auto-Encoder Rotation (10 Pulses/sec)</span>
+            </button>
+
+            <!-- Reset Counter -->
+            <button onclick="resetC10Counter()" class="w-full py-1.5 rounded-lg text-xs font-bold border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-claude-text dark:text-claude-darkText hover:bg-slate-100 transition">
+              Reset Counter (TCNT5 = 0)
+            </button>
+
+            <!-- LED 2 CTC Frequency Slider -->
+            <div class="space-y-1 pt-1">
+              <div class="flex justify-between text-xs font-mono">
+                <span class="text-claude-muted">Timer 3 Toggle Freq:</span>
+                <span id="c10-val-freq" class="font-bold text-blue-600">2 Hz (OCR3A = 3905)</span>
+              </div>
+              <input type="range" id="c10-slider-freq" min="1" max="10" value="2" oninput="updateC10Freq()" class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg cursor-pointer">
+            </div>
+          </div>
+
+          <!-- Code Snippet -->
+          <div class="code-block text-[11px]">
+// Tutorial 10 & 11: Timer 3 Hardware CTC + Timer 5 Pulse Counter
+void setup() {
+    // 1. Configure Timer 3 in CTC Mode to toggle OC3A (PB7)
+    DDRB |= (1 << DDB7);
+    TCCR3A = (1 << COM3A0); // Toggle OC3A on Compare Match
+    TCCR3B = (1 << WGM32) | (1 << CS32) | (1 << CS30); // CTC mode, prescaler 1024
+    OCR3A = 3905; // 16MHz / (2 * 1024 * 2Hz) - 1 = 3905
+
+    // 2. Configure Timer 5 as External Pulse Counter on T5 (PL2)
+    DDRL &= ~(1 << DDL2); // T5 as input
+    TCCR5B = (1 << CS52) | (1 << CS51); // External clock on T5, falling edge
+    TCNT5 = 0; // Initialize counter register
+}
+
+void loop() {
+    // Software LED on PA0
+    PORTA ^= (1 << PORTA0);
+    _delay_ms(400);
+    // TCNT5 increments automatically in hardware with 0% CPU overhead!
+}</div>
+        </div>
+      </div>
+    </article>
+
+  </main>
+
+  <!-- ==================== COMPLETE SIMULATION SCRIPT ENGINE ==================== -->
+  <script>
+    // ---------- THEME TOGGLE ----------
+    const themeBtn = document.getElementById('theme-toggle');
+    function applyTheme() {
+      const isDark = localStorage.getItem('theme') === 'dark' || 
+        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+    applyTheme();
+    themeBtn.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
+
+    // ---------- CATEGORY FILTER ----------
+    function filterCategory(cat) {
+      document.querySelectorAll('.cat-filter-btn').forEach(b => {
+        b.classList.remove('bg-[#d97757]', 'text-white', 'font-semibold', 'shadow-sm');
+        b.classList.add('font-medium', 'text-claude-muted');
+      });
+      const activeBtn = document.getElementById('btn-cat-' + cat);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-claude-muted', 'font-medium');
+        activeBtn.classList.add('bg-[#d97757]', 'text-white', 'font-semibold', 'shadow-sm');
+      }
+
+      document.querySelectorAll('.circuit-card').forEach(card => {
+        if (cat === 'all' || card.dataset.category === cat) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    // ---------- CIRCUIT 1: NPN TRANSISTOR LED DRIVER ----------
+    let c1State = { pinHigh: true, ic: 20, beta: 100, k: 3, vf: 1.8 };
+    function toggleC1Pin() {
+      c1State.pinHigh = !c1State.pinHigh;
+      updateC1();
+    }
+    function updateC1() {
+      c1State.ic = parseFloat(document.getElementById('c1-slider-ic').value);
+      c1State.beta = parseFloat(document.getElementById('c1-slider-beta').value);
+      c1State.k = parseFloat(document.getElementById('c1-sel-k').value);
+      c1State.vf = parseFloat(document.getElementById('c1-sel-led').value);
+
+      document.getElementById('c1-val-ic').textContent = c1State.ic + ' mA';
+      document.getElementById('c1-val-beta').textContent = c1State.beta;
+
+      const btnToggle = document.getElementById('c1-btn-toggle');
+      const statusPill = document.getElementById('c1-status-pill');
+      const dispVpin = document.getElementById('c1-disp-vpin');
+      const dispIb = document.getElementById('c1-disp-ib');
+      const dispIc = document.getElementById('c1-disp-ic');
+      const dispVce = document.getElementById('c1-disp-vce');
+      const ledGlow = document.getElementById('c1-led-glow');
+      const photons = document.getElementById('c1-photons');
+
+      // Math calculations
+      const vcc = 5.0;
+      const voh = 5.0;
+      const vbe = 0.7;
+      const vceSat = 0.2;
+
+      const ibTarget = (c1State.k * c1State.ic) / c1State.beta; // mA
+      const rb = ((voh - vbe) / (ibTarget / 1000.0)); // ohms
+      const rc = ((vcc - c1State.vf - vceSat) / (c1State.ic / 1000.0)); // ohms
+
+      document.getElementById('c1-txt-rb').textContent = 'RB ' + Math.round(rb) + 'Ω';
+      document.getElementById('c1-txt-rc').textContent = 'RC ' + Math.round(rc) + 'Ω';
+
+      if (c1State.pinHigh) {
+        btnToggle.textContent = 'Toggle Pin: HIGH (1)';
+        btnToggle.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-[#d97757] text-white shadow-sm hover:bg-[#c76646] transition';
+        statusPill.textContent = 'SATURATED (LED ON)';
+        statusPill.className = 'claude-pill bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px]';
+        dispVpin.textContent = '5.00 V';
+        dispIb.textContent = ibTarget.toFixed(2) + ' mA';
+        dispIc.textContent = c1State.ic.toFixed(1) + ' mA';
+        dispVce.textContent = '0.20 V';
+        ledGlow.style.opacity = '1';
+        photons.style.opacity = '1';
+        document.getElementById('c1-wire-base').setAttribute('stroke', '#22c55e');
+        document.getElementById('c1-wire-b2t').setAttribute('stroke', '#22c55e');
+      } else {
+        btnToggle.textContent = 'Toggle Pin: LOW (0)';
+        btnToggle.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-slate-500 text-white shadow-sm hover:bg-slate-600 transition';
+        statusPill.textContent = 'CUTOFF (LED OFF)';
+        statusPill.className = 'claude-pill bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px]';
+        dispVpin.textContent = '0.00 V';
+        dispIb.textContent = '0.00 mA';
+        dispIc.textContent = '0.00 mA';
+        dispVce.textContent = '5.00 V';
+        ledGlow.style.opacity = '0.1';
+        photons.style.opacity = '0';
+        document.getElementById('c1-wire-base').setAttribute('stroke', '#64748b');
+        document.getElementById('c1-wire-b2t').setAttribute('stroke', '#64748b');
+      }
+    }
+
+    // ---------- CIRCUIT 2: DOOR REED SWITCH WITH PULL-UP ----------
+    let c2DoorOpen = false;
+    function toggleC2Door() {
+      c2DoorOpen = !c2DoorOpen;
+      updateC2();
+    }
+    function updateC2() {
+      const puEnabled = document.getElementById('c2-chk-pu').checked;
+      const btnDoor = document.getElementById('c2-btn-door');
+      const statusPill = document.getElementById('c2-status-pill');
+      const blade = document.getElementById('c2-switch-blade');
+      const magnet = document.getElementById('c2-magnet');
+      const alarmLed = document.getElementById('c2-alarm-led');
+      const regPortA = document.getElementById('c2-reg-porta');
+      const regPinA = document.getElementById('c2-reg-pina');
+      const regPortC = document.getElementById('c2-reg-portc');
+      const mosPu = document.getElementById('c2-mos-pu');
+
+      mosPu.setAttribute('fill', puEnabled ? '#22c55e' : '#64748b');
+      regPortA.textContent = puEnabled ? '1 (PU ON)' : '0 (PU OFF)';
+      regPortA.className = puEnabled ? 'font-bold text-emerald-600 dark:text-emerald-400' : 'font-bold text-slate-400';
+
+      if (c2DoorOpen) {
+        btnDoor.innerHTML = '<i class="fa-solid fa-door-open"></i> <span>Close Door (Engage Reed Switch)</span>';
+        btnDoor.className = 'w-full py-2.5 rounded-lg text-xs font-bold bg-rose-600 text-white shadow-sm hover:bg-rose-700 transition flex items-center justify-center gap-2';
+        blade.setAttribute('x2', '395');
+        blade.setAttribute('y2', '160'); // broken open
+        magnet.setAttribute('transform', 'translate(430, 205)'); // magnet moved far away
+
+        if (puEnabled) {
+          statusPill.textContent = 'INTRUSION DETECTED (PA5=1)';
+          statusPill.className = 'claude-pill bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 text-[10px]';
+          regPinA.textContent = '1 (HIGH)';
+          regPinA.className = 'font-bold text-rose-600 dark:text-rose-400';
+          regPortC.textContent = '1 (ALARM ON!)';
+          regPortC.className = 'font-bold text-rose-600 dark:text-rose-400';
+          alarmLed.setAttribute('fill', '#ef4444');
+          alarmLed.classList.add('led-glow-red');
+        } else {
+          statusPill.textContent = 'FLOATING / UNDEFINED (NO PULLUP)';
+          statusPill.className = 'claude-pill bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-[10px]';
+          regPinA.textContent = '? (FLOATING)';
+          regPinA.className = 'font-bold text-amber-600';
+          regPortC.textContent = 'UNSTABLE';
+          alarmLed.setAttribute('fill', '#f59e0b');
+          alarmLed.classList.remove('led-glow-red');
+        }
+      } else {
+        btnDoor.innerHTML = '<i class="fa-solid fa-door-closed"></i> <span>Open Door (Break Reed Switch)</span>';
+        btnDoor.className = 'w-full py-2.5 rounded-lg text-xs font-bold bg-[#d97757] text-white shadow-sm hover:bg-[#c76646] transition flex items-center justify-center gap-2';
+        blade.setAttribute('x2', '405');
+        blade.setAttribute('y2', '170'); // switch closed to GND
+        magnet.setAttribute('transform', 'translate(360, 205)');
+
+        statusPill.textContent = 'DOOR SECURE (PA5=0)';
+        statusPill.className = 'claude-pill bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px]';
+        regPinA.textContent = '0 (LOW)';
+        regPinA.className = 'font-bold text-slate-700 dark:text-slate-300';
+        regPortC.textContent = '0 (OFF)';
+        regPortC.className = 'font-bold text-slate-500';
+        alarmLed.setAttribute('fill', '#64748b');
+        alarmLed.classList.remove('led-glow-red');
+      }
+    }
+    function injectC2Noise() {
+      if (document.getElementById('c2-chk-pu').checked) {
+        alert('Internal pull-up is ENABLED. The input is stiffly held at 5V / 0V and is immune to EMI noise.');
+      } else {
+        const randomVal = Math.random() > 0.5 ? '1 (FALSE ALARM!)' : '0 (QUIET)';
+        alert('Pin PA5 is FLOATING in high-impedance mode! Injected ambient noise triggered erratic read: ' + randomVal);
+      }
+    }
+
+    // ---------- CIRCUIT 3: PLA FULL ADDER ----------
+    let c3State = { a: 0, b: 0, cin: 0 };
+    function toggleC3(pin) {
+      c3State[pin] = c3State[pin] === 0 ? 1 : 0;
+      updateC3();
+    }
+    function updateC3() {
+      document.getElementById('c3-val-a').textContent = c3State.a;
+      document.getElementById('c3-val-b').textContent = c3State.b;
+      document.getElementById('c3-val-cin').textContent = c3State.cin;
+
+      ['a', 'b', 'cin'].forEach(p => {
+        const valElem = document.getElementById('c3-val-' + p);
+        if (c3State[p] === 1) {
+          valElem.className = 'text-xl font-mono font-bold text-purple-600 mt-1';
+        } else {
+          valElem.className = 'text-xl font-mono font-bold text-slate-400 mt-1';
+        }
+      });
+
+      const minterm = (c3State.a << 2) | (c3State.b << 1) | c3State.cin;
+      const sum = (c3State.a ^ c3State.b ^ c3State.cin);
+      const cout = ((c3State.a & c3State.b) | (c3State.b & c3State.cin) | (c3State.a & c3State.cin));
+
+      const eqnMap = [
+        "A' . B' . Cin' (m0)",
+        "A' . B' . Cin (m1)",
+        "A' . B . Cin' (m2)",
+        "A' . B . Cin (m3)",
+        "A . B' . Cin' (m4)",
+        "A . B' . Cin (m5)",
+        "A . B . Cin' (m6)",
+        "A . B . Cin (m7)"
+      ];
+      document.getElementById('c3-disp-eqn').textContent = eqnMap[minterm];
+      document.getElementById('c3-txt-s').textContent = sum;
+      document.getElementById('c3-txt-c').textContent = cout;
+
+      const badge = document.getElementById('c3-minterm-badge');
+      badge.textContent = 'ACTIVE: Minterm m' + minterm;
+
+      const ledS = document.getElementById('c3-led-s');
+      const ledCout = document.getElementById('c3-led-cout');
+      if (sum) {
+        ledS.setAttribute('fill', '#3b82f6');
+        ledS.classList.add('led-glow-blue');
+      } else {
+        ledS.setAttribute('fill', '#64748b');
+        ledS.classList.remove('led-glow-blue');
+      }
+      if (cout) {
+        ledCout.setAttribute('fill', '#f59e0b');
+        ledCout.classList.add('led-glow-amber');
+      } else {
+        ledCout.setAttribute('fill', '#64748b');
+        ledCout.classList.remove('led-glow-amber');
+      }
+    }
+
+    // ---------- CIRCUIT 4: 6T SRAM CELL ----------
+    let c4State = { q: 1, wl: 0 };
+    function writeC4(val) {
+      c4State.wl = 1;
+      c4State.q = val;
+      updateC4();
+      document.getElementById('c4-log').textContent = 'Pulsed WL=1. Overwrote storage latch with Q = ' + val;
+      setTimeout(() => {
+        c4State.wl = 0;
+        updateC4();
+      }, 500);
+    }
+    function readC4() {
+      c4State.wl = 1;
+      updateC4();
+      document.getElementById('c4-log').textContent = 'Sense amp precharged BL/~BL. Reading: Q = ' + c4State.q;
+      setTimeout(() => {
+        c4State.wl = 0;
+        updateC4();
+      }, 500);
+    }
+    function toggleC4WL() {
+      c4State.wl = c4State.wl === 0 ? 1 : 0;
+      updateC4();
+    }
+    function updateC4() {
+      const q = c4State.q;
+      const qb = q === 1 ? 0 : 1;
+
+      document.getElementById('c4-txt-vq').textContent = q ? '5.0V' : '0.0V';
+      document.getElementById('c4-txt-vqb').textContent = qb ? '5.0V' : '0.0V';
+
+      document.getElementById('c4-stat-wl').textContent = c4State.wl ? '1 (ACCESS)' : '0 (HOLD)';
+      document.getElementById('c4-stat-wl').className = c4State.wl ? 'font-bold text-amber-600' : 'font-bold text-slate-500';
+
+      document.getElementById('c4-stat-q').textContent = q + ' (' + (q ? '5.0V' : '0.0V') + ')';
+      document.getElementById('c4-stat-qb').textContent = qb + ' (' + (qb ? '5.0V' : '0.0V') + ')';
+
+      const statePill = document.getElementById('c4-state-pill');
+      statePill.textContent = 'STORED: Q = ' + q + ', ~Q = ' + qb;
+      statePill.className = q ? 'claude-pill bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 text-[10px] font-mono' : 'claude-pill bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 text-[10px] font-mono';
+    }
+
+    // ---------- CIRCUIT 5: 10-BIT SAR ADC ----------
+    let c5State = { vin: 2.50, vref: 5.0, currentBit: 9, sarReg: 0, testReg: 0, done: true };
+    function updateC5Vin() {
+      c5State.vin = parseFloat(document.getElementById('c5-slider-vin').value) / 100.0;
+      document.getElementById('c5-val-vin').textContent = c5State.vin.toFixed(2) + ' V';
+      document.getElementById('c5-disp-vin').textContent = c5State.vin.toFixed(2) + ' V';
+      autoC5SAR();
+    }
+    function updateC5Vref() {
+      c5State.vref = parseFloat(document.getElementById('c5-sel-vref').value);
+      document.getElementById('c5-dac-vref-txt').textContent = 'VREF = ' + c5State.vref.toFixed(2) + ' V';
+      autoC5SAR();
+    }
+    function resetC5SAR() {
+      c5State.currentBit = 9;
+      c5State.sarReg = 0;
+      c5State.done = false;
+      renderC5Bits();
+      document.getElementById('c5-cycle-pill').textContent = 'READY FOR CLOCK 1';
+      document.getElementById('c5-disp-bit').textContent = 'Bit 9 (MSB)';
+    }
+    function stepC5SAR() {
+      if (c5State.done) resetC5SAR();
+      if (c5State.currentBit < 0) return;
+
+      const testVal = c5State.sarReg | (1 << c5State.currentBit);
+      const vdac = (testVal / 1024.0) * c5State.vref;
+      document.getElementById('c5-disp-vdac').textContent = vdac.toFixed(2) + ' V';
+      document.getElementById('c5-lbl-vdac').textContent = 'VDAC = ' + vdac.toFixed(2) + 'V';
+
+      const compLed = document.getElementById('c5-comp-led');
+      const compTxt = document.getElementById('c5-comp-txt');
+
+      if (c5State.vin >= vdac) {
+        c5State.sarReg = testVal;
+        compLed.setAttribute('fill', '#22c55e');
+        compTxt.textContent = 'Vin >= Vdac (Keep 1)';
+        compTxt.setAttribute('fill', '#22c55e');
+      } else {
+        compLed.setAttribute('fill', '#ef4444');
+        compTxt.textContent = 'Vin < Vdac (Clear 0)';
+        compTxt.setAttribute('fill', '#ef4444');
+      }
+
+      c5State.currentBit--;
+      renderC5Bits();
+
+      if (c5State.currentBit < 0) {
+        c5State.done = true;
+        document.getElementById('c5-cycle-pill').textContent = 'CONVERSION COMPLETE (IDLE)';
+        document.getElementById('c5-disp-bit').textContent = 'Complete';
+        document.getElementById('c5-disp-adc').textContent = c5State.sarReg + ' / 1023';
+        document.getElementById('c5-result-disp').textContent = 
+          c5State.sarReg + ' (0x' + c5State.sarReg.toString(16).toUpperCase().padStart(4, '0') + ') • 0b' + c5State.sarReg.toString(2).padStart(10, '0');
+      } else {
+        document.getElementById('c5-cycle-pill').textContent = 'STEPPING BIT ' + c5State.currentBit;
+        document.getElementById('c5-disp-bit').textContent = 'Bit ' + c5State.currentBit;
+      }
+    }
+    function autoC5SAR() {
+      resetC5SAR();
+      for (let i = 0; i < 10; i++) {
+        stepC5SAR();
+      }
+    }
+    function renderC5Bits() {
+      for (let b = 0; b < 10; b++) {
+        const box = document.getElementById('c5-b' + b);
+        if (!box) continue;
+        const bitVal = (c5State.sarReg >> b) & 1;
+        if (b === c5State.currentBit) {
+          box.setAttribute('fill', '#f59e0b'); // active amber
+        } else if (bitVal === 1) {
+          box.setAttribute('fill', '#22c55e'); // confirmed green
+        } else {
+          box.setAttribute('fill', '#64748b'); // confirmed zero
+        }
+      }
+    }
+
+    // ---------- CIRCUIT 6: R-2R 4-BIT DAC ----------
+    let c6Bits = [0, 0, 0, 1]; // D0, D1, D2, D3
+    function toggleC6Bit(bitIndex) {
+      c6Bits[bitIndex] = c6Bits[bitIndex] === 0 ? 1 : 0;
+      updateC6();
+    }
+    function stepC6Counter() {
+      let code = (c6Bits[3] << 3) | (c6Bits[2] << 2) | (c6Bits[1] << 1) | c6Bits[0];
+      code = (code + 1) % 16;
+      c6Bits[0] = code & 1;
+      c6Bits[1] = (code >> 1) & 1;
+      c6Bits[2] = (code >> 2) & 1;
+      c6Bits[3] = (code >> 3) & 1;
+      updateC6();
+    }
+    function resetC6Counter() {
+      c6Bits = [0, 0, 0, 0];
+      updateC6();
+    }
+    function updateC6() {
+      const code = (c6Bits[3] << 3) | (c6Bits[2] << 2) | (c6Bits[1] << 1) | c6Bits[0];
+      const vref = 5.0;
+      const vout = (vref * code) / 16.0;
+
+      for (let i = 0; i < 4; i++) {
+        const valElem = document.getElementById('c6-val-d' + i);
+        const btnElem = document.getElementById('c6-btn-d' + i);
+        const dotElem = document.getElementById('c6-dot-d' + i);
+        const legElem = document.getElementById('c6-leg-d' + i);
+
+        valElem.textContent = c6Bits[i];
+        if (c6Bits[i] === 1) {
+          valElem.className = 'text-lg font-mono font-bold text-emerald-600 mt-0.5';
+          btnElem.className = 'p-2.5 rounded-lg border border-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 text-center transition';
+          dotElem.setAttribute('fill', '#22c55e');
+          legElem.setAttribute('stroke', '#22c55e');
+        } else {
+          valElem.className = 'text-lg font-mono font-bold text-slate-400 mt-0.5';
+          btnElem.className = 'p-2.5 rounded-lg border border-claude-border dark:border-claude-darkBorder bg-white dark:bg-[#201e1a] text-center transition';
+          dotElem.setAttribute('fill', '#64748b');
+          legElem.setAttribute('stroke', '#64748b');
+        }
+      }
+
+      document.getElementById('c6-disp-code').textContent = 
+        c6Bits[3] + '' + c6Bits[2] + '' + c6Bits[1] + '' + c6Bits[0] + ' (' + code + ')';
+      document.getElementById('c6-disp-vout').textContent = vout.toFixed(4) + ' V';
+      document.getElementById('c6-disp-vout-gauge').textContent = vout.toFixed(2) + ' V';
+      document.getElementById('c6-code-pill').textContent = 'CODE: 0b' + c6Bits[3] + c6Bits[2] + c6Bits[1] + c6Bits[0] + ' (0x' + code.toString(16).toUpperCase() + ' = ' + code + ')';
+
+      // Rotate needle: 0V is -45deg, 5V is +45deg
+      const angle = -45 + (vout / 5.0) * 90;
+      document.getElementById('c6-needle-group').setAttribute('transform', 'rotate(' + angle + ', 52.5, 85)');
+    }
+
+    // ---------- CIRCUIT 7: HD44780 16x2 LCD ----------
+    function sendC7Text(lineNum) {
+      const input = document.getElementById('c7-input-text').value;
+      const padded = (input + '                ').substring(0, 16);
+      const lineElem = document.getElementById('c7-lcd-line' + lineNum);
+      lineElem.textContent = padded;
+
+      const lastChar = input.length > 0 ? input.charAt(input.length - 1) : ' ';
+      const asciiCode = lastChar.charCodeAt(0);
+      const upperNibble = (asciiCode >> 4) & 0x0F;
+      const lowerNibble = asciiCode & 0x0F;
+
+      document.getElementById('c7-char-ascii').textContent = "Last Char: '" + lastChar + "' (0x" + asciiCode.toString(16).toUpperCase() + ")";
+      document.getElementById('c7-disp-upper').textContent = '0x' + upperNibble.toString(16).toUpperCase() + ' (0b' + upperNibble.toString(2).padStart(4, '0') + ') + E Pulse';
+      document.getElementById('c7-disp-lower').textContent = '0x' + lowerNibble.toString(16).toUpperCase() + ' (0b' + lowerNibble.toString(2).padStart(4, '0') + ') + E Pulse';
+    }
+    function clearC7LCD() {
+      document.getElementById('c7-lcd-line1').textContent = '                ';
+      document.getElementById('c7-lcd-line2').textContent = '                ';
+      document.getElementById('c7-char-ascii').textContent = 'Screen Cleared (0x01)';
+    }
+    function initC7LCD() {
+      document.getElementById('c7-lcd-line1').textContent = 'ATmega2560 LAB  ';
+      document.getElementById('c7-lcd-line2').textContent = 'JU EE 3RD YEAR  ';
+    }
+    function updateC7Contrast() {
+      const contrast = document.getElementById('c7-slider-contrast').value;
+      document.getElementById('c7-val-contrast').textContent = contrast + '%';
+      document.getElementById('c7-lcd-glass').style.opacity = contrast / 100.0;
+    }
+
+    // ---------- CIRCUIT 8: WATCHDOG TIMER & SLEEP ----------
+    let c8WdtPercent = 100;
+    let c8Crashed = false;
+    let c8SleepMode = 'active';
+
+    function patTheDog() {
+      if (c8Crashed) {
+        alert('MCU is in deadlock infinite loop! Code execution halted. CPU cannot execute wdt_reset(). Watchdog will reset system!');
+        return;
+      }
+      c8WdtPercent = 100;
+      document.getElementById('c8-disp-sys').textContent = 'NORMAL RUN';
+      document.getElementById('c8-disp-sys').className = 'font-bold text-emerald-600 dark:text-emerald-400';
+    }
+    function simulateCrash() {
+      c8Crashed = true;
+      document.getElementById('c8-btn-crash').className = 'w-full py-2 rounded-lg text-xs font-bold bg-rose-600 text-white shadow-sm transition flex items-center justify-center gap-1.5';
+      document.getElementById('c8-disp-sys').textContent = 'DEADLOCK (NO PAT)';
+      document.getElementById('c8-disp-sys').className = 'font-bold text-rose-600 dark:text-rose-400';
+    }
+    function updateC8SleepMode() {
+      c8SleepMode = document.getElementById('c8-sel-sleep').value;
+      const statusPill = document.getElementById('c8-status-pill');
+      const dispCurr = document.getElementById('c8-disp-curr');
+      const dispMode = document.getElementById('c8-disp-mode');
+      const clockGateTxt = document.getElementById('c8-clock-gate-txt');
+      const cpuStatusTxt = document.getElementById('c8-cpu-status-txt');
+
+      if (c8SleepMode === 'active') {
+        statusPill.textContent = 'MCU ACTIVE (15.0 mA)';
+        statusPill.className = 'claude-pill bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-mono';
+        dispCurr.textContent = '15.0 mA';
+        dispMode.textContent = 'ACTIVE MODE';
+        clockGateTxt.textContent = '16MHz CLK: ON';
+        cpuStatusTxt.textContent = 'STATE: RUNNING';
+        cpuStatusTxt.className = 'font-bold text-emerald-600';
+      } else if (c8SleepMode === 'idle') {
+        statusPill.textContent = 'MCU IDLE (3.3 mA)';
+        statusPill.className = 'claude-pill bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 text-[10px] font-mono';
+        dispCurr.textContent = '3.3 mA';
+        dispMode.textContent = 'IDLE SLEEP';
+        clockGateTxt.textContent = 'CPU CLK: OFF';
+        cpuStatusTxt.textContent = 'STATE: SLEEPING';
+        cpuStatusTxt.className = 'font-bold text-indigo-600';
+      } else if (c8SleepMode === 'adc') {
+        statusPill.textContent = 'ADC NOISE RED (1.1 mA)';
+        statusPill.className = 'claude-pill bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 text-[10px] font-mono';
+        dispCurr.textContent = '1.1 mA';
+        dispMode.textContent = 'ADC NOISE RED';
+        clockGateTxt.textContent = 'CPU/IO CLK: OFF';
+        cpuStatusTxt.textContent = 'STATE: SLEEPING';
+        cpuStatusTxt.className = 'font-bold text-teal-600';
+      } else if (c8SleepMode === 'powerdown') {
+        statusPill.textContent = 'POWER-DOWN (0.5 µA)';
+        statusPill.className = 'claude-pill bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 text-[10px] font-mono';
+        dispCurr.textContent = '0.5 µA';
+        dispMode.textContent = 'DEEP SLEEP';
+        clockGateTxt.textContent = 'ALL CLOCKS OFF';
+        cpuStatusTxt.textContent = 'STATE: DEEP SLEEP';
+        cpuStatusTxt.className = 'font-bold text-purple-600';
+      }
+    }
+    function wakeUpMCU() {
+      document.getElementById('c8-sel-sleep').value = 'active';
+      updateC8SleepMode();
+      alert('External INT0 Pin Interrupt fired! SMCR sleep disabled. CPU clock restarted and execution resumed!');
+    }
+
+    // Watchdog depletion loop
+    setInterval(() => {
+      if (c8SleepMode !== 'powerdown') {
+        c8WdtPercent -= 3;
+        if (c8WdtPercent <= 0) {
+          c8WdtPercent = 100;
+          c8Crashed = false;
+          document.getElementById('c8-btn-crash').className = 'w-full py-2 rounded-lg text-xs font-bold border border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 hover:bg-rose-100 transition flex items-center justify-center gap-1.5';
+          document.getElementById('c8-disp-sys').textContent = 'SYSTEM RESET!';
+          document.getElementById('c8-disp-sys').className = 'font-bold text-rose-600 dark:text-rose-400 animate-pulse';
+        }
+      }
+      const prog = document.getElementById('c8-svg-prog');
+      const progTxt = document.getElementById('c8-svg-prog-txt');
+      if (prog) {
+        prog.setAttribute('width', Math.max(5, (c8WdtPercent / 100.0) * 130));
+        progTxt.textContent = Math.round(c8WdtPercent) + '%';
+        if (c8WdtPercent < 30) {
+          prog.setAttribute('fill', '#ef4444');
+        } else if (c8WdtPercent < 60) {
+          prog.setAttribute('fill', '#f59e0b');
+        } else {
+          prog.setAttribute('fill', '#22c55e');
+        }
+      }
+    }, 150);
+
+    // ---------- CIRCUIT 9: FPGA CMOS TRANSMISSION GATE ----------
+    let c9Select = true;
+    function toggleC9Select() {
+      c9Select = !c9Select;
+      updateC9();
+    }
+    function updateC9() {
+      const vin = parseFloat(document.getElementById('c9-slider-vin').value) / 10.0;
+      document.getElementById('c9-val-vin').textContent = vin.toFixed(2) + ' V';
+      document.getElementById('c9-disp-vin').textContent = vin.toFixed(2) + ' V';
+
+      const btn = document.getElementById('c9-btn-toggle');
+      const pill = document.getElementById('c9-status-pill');
+
+      if (c9Select) {
+        btn.innerHTML = '<i class="fa-solid fa-toggle-on"></i> <span>Gate Enable: S = 1 (ON)</span>';
+        btn.className = 'w-full py-2.5 rounded-lg text-xs font-bold bg-[#d97757] text-white shadow-sm hover:bg-[#c76646] transition flex items-center justify-center gap-2';
+        pill.textContent = 'GATE CONDUCTING (S = 1)';
+        pill.className = 'claude-pill bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-mono';
+
+        const vth = 0.7;
+        const nmosOut = Math.min(vin, 5.0 - vth);
+        const tgOut = vin;
+
+        document.getElementById('c9-disp-nmos-out').textContent = nmosOut.toFixed(2) + ' V';
+        document.getElementById('c9-disp-tg-out').textContent = tgOut.toFixed(2) + ' V';
+        document.getElementById('c9-disp-vdrop').textContent = 'Vout = VDD - Vth = ' + nmosOut.toFixed(2) + 'V';
+        document.getElementById('c9-disp-tgout').textContent = 'Vout = Vin = ' + tgOut.toFixed(2) + 'V (Zero Loss!)';
+      } else {
+        btn.innerHTML = '<i class="fa-solid fa-toggle-off"></i> <span>Gate Disable: S = 0 (OFF / Hi-Z)</span>';
+        btn.className = 'w-full py-2.5 rounded-lg text-xs font-bold bg-slate-500 text-white shadow-sm hover:bg-slate-600 transition flex items-center justify-center gap-2';
+        pill.textContent = 'HIGH IMPEDANCE (Hi-Z)';
+        pill.className = 'claude-pill bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-mono';
+
+        document.getElementById('c9-disp-nmos-out').textContent = 'Hi-Z (0V)';
+        document.getElementById('c9-disp-tg-out').textContent = 'Hi-Z (0V)';
+      }
+    }
+
+    // ---------- CIRCUIT 10: DUAL TIMERS & PULSE COUNTER ----------
+    let c10Count = 0;
+    let c10AutoPulse = false;
+    let c10AutoTimer = null;
+    let c10Led1State = false;
+    let c10Led2State = false;
+
+    function pulseC10Sensor() {
+      c10Count++;
+      const svgTxt = document.getElementById('c10-disp-tcnt5-svg');
+      const dispCount = document.getElementById('c10-disp-count');
+      const dot = document.getElementById('c10-pulse-dot');
+      const statusTxt = document.getElementById('c10-pulse-status');
+
+      svgTxt.textContent = 'TCNT5 = 0x' + c10Count.toString(16).toUpperCase().padStart(4, '0') + ' (' + c10Count + ')';
+      dispCount.textContent = c10Count + ' Pulses';
+
+      dot.setAttribute('fill', '#ef4444');
+      statusTxt.textContent = 'Falling Edge Captured!';
+      setTimeout(() => {
+        dot.setAttribute('fill', '#059669');
+        statusTxt.textContent = 'Sensor Idle';
+      }, 80);
+    }
+    function toggleC10AutoPulse() {
+      c10AutoPulse = !c10AutoPulse;
+      const btn = document.getElementById('c10-btn-auto');
+      if (c10AutoPulse) {
+        btn.className = 'w-full py-2 rounded-lg text-xs font-bold bg-emerald-600 text-white transition flex items-center justify-center gap-1.5 shadow-sm';
+        btn.innerHTML = '<i class="fa-solid fa-stop text-white"></i> <span>Stop Auto-Encoder Rotation</span>';
+        c10AutoTimer = setInterval(pulseC10Sensor, 100);
+      } else {
+        btn.className = 'w-full py-2 rounded-lg text-xs font-bold border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 transition flex items-center justify-center gap-1.5';
+        btn.innerHTML = '<i class="fa-solid fa-rotate text-emerald-600"></i> <span>Start Auto-Encoder Rotation (10 Pulses/sec)</span>';
+        clearInterval(c10AutoTimer);
+      }
+    }
+    function resetC10Counter() {
+      c10Count = 0;
+      document.getElementById('c10-disp-tcnt5-svg').textContent = 'TCNT5 = 0x0000 (0)';
+      document.getElementById('c10-disp-count').textContent = '0 Pulses';
+    }
+    function updateC10Freq() {
+      const f = document.getElementById('c10-slider-freq').value;
+      const ocr = Math.round(16000000.0 / (2 * 1024 * f) - 1);
+      document.getElementById('c10-val-freq').textContent = f + ' Hz (OCR3A = ' + ocr + ')';
+      document.getElementById('c10-disp-s2').textContent = 'Freq: ' + f + '.0 Hz';
+    }
+
+    // LED 1 software blink simulation
+    setInterval(() => {
+      c10Led1State = !c10Led1State;
+      const led1 = document.getElementById('c10-led1');
+      if (led1) {
+        led1.setAttribute('fill', c10Led1State ? '#f59e0b' : '#64748b');
+        if (c10Led1State) led1.classList.add('led-glow-amber');
+        else led1.classList.remove('led-glow-amber');
+      }
+    }, 400);
+
+    // LED 2 hardware CTC toggle simulation
+    setInterval(() => {
+      c10Led2State = !c10Led2State;
+      const led2 = document.getElementById('c10-led2');
+      if (led2) {
+        led2.setAttribute('fill', c10Led2State ? '#3b82f6' : '#64748b');
+        if (c10Led2State) led2.classList.add('led-glow-blue');
+        else led2.classList.remove('led-glow-blue');
+      }
+    }, 250);
+
+    // Initial trigger
+    window.addEventListener('DOMContentLoaded', () => {
+      updateC1();
+      updateC2();
+      updateC3();
+      updateC4();
+      updateC5Vin();
+      updateC6();
+      updateC9();
+    });
+  </script>
+</body>
+</html>
